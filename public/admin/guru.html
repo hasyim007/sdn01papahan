@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tenaga Pendidik - Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: { fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']}, colors: { primary:'#2563EB', primaryHover:'#1D4ED8', slateDark:'#0F172A', slateMuted:'#64748B' } } } }</script>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="antialiased">
+<div class="flex">
+  <div id="admin-sidebar-root"></div>
+  <main class="flex-1 p-8 max-w-3xl">
+    <h1 class="text-2xl font-bold text-slateDark mb-1">Tenaga Pendidik</h1>
+    <p class="text-sm text-slateMuted mb-8">Halaman publik: <code>/guru</code></p>
+
+    <div class="admin-card p-6 mb-6">
+      <h2 class="font-bold text-slateDark mb-4">Judul Bagian</h2>
+      <div id="header-form"></div>
+      <button id="header-save" class="btn-primary">Simpan Judul</button>
+    </div>
+
+    <div class="admin-card p-6">
+      <h2 class="font-bold text-slateDark mb-4">Daftar Guru & Staf</h2>
+      <div id="list"></div>
+    </div>
+  </main>
+</div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+(async () => {
+  await initAdminPage('guru');
+  const headerForm = document.getElementById('header-form');
+  try {
+    const header = (await api('/api/store/guruHeader')).data || {};
+    buildSimpleForm(headerForm, [
+      { key: 'eyebrow', label: 'Eyebrow', type: 'text' },
+      { key: 'titlePrefix', label: 'Judul (awal)', type: 'text' },
+      { key: 'titleHighlight', label: 'Judul (highlight)', type: 'text' },
+      { key: 'subtitle', label: 'Subjudul', type: 'textarea' },
+    ], header);
+    document.getElementById('header-save').addEventListener('click', async () => {
+      try { await api('/api/store/guruHeader', { method: 'PUT', body: JSON.stringify({ data: readSimpleForm(headerForm) }) }); toast('Tersimpan'); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+
+    await buildArrayManager(document.getElementById('list'), 'guru', [
+      { key: 'photo', label: 'Foto', type: 'image' },
+      { key: 'name', label: 'Nama Lengkap', type: 'text' },
+      { key: 'role', label: 'Jabatan', type: 'text' },
+      { key: 'experience', label: 'Pengalaman', type: 'text' },
+      { key: 'education', label: 'Pendidikan Terakhir', type: 'text' },
+      { key: 'isKepsek', label: 'Tandai sebagai Kepala Sekolah', type: 'checkbox' },
+    ], { titleField: 'name', subtitleField: 'role', thumbField: 'photo' });
+  } catch (e) { toast(e.message, 'error'); }
+})();
+</script>
+</body>
+</html>

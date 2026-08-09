@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login Admin - SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: { fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']}, colors: { primary:'#2563EB', primaryHover:'#1D4ED8', slateDark:'#0F172A', slateMuted:'#64748B' } } } }</script>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="antialiased min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-sm admin-card p-8">
+    <div class="text-center mb-8">
+      <div class="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-3">S1</div>
+      <h1 class="font-bold text-slateDark text-lg">Login Admin</h1>
+      <p class="text-xs text-slateMuted">SDN 01 Papahan — Panel CMS</p>
+    </div>
+    <form id="login-form" class="space-y-4">
+      <div><label class="field-label">Username</label><input type="text" name="username" required class="field-input" autocomplete="username"></div>
+      <div><label class="field-label">Password</label><input type="password" name="password" required class="field-input" autocomplete="current-password"></div>
+      <p id="login-error" class="text-sm text-red-600 hidden"></p>
+      <button type="submit" class="btn-primary w-full">Masuk</button>
+    </form>
+  </div>
+
+<script src="/admin/assets/admin.js"></script>
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  try {
+    await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }) });
+    window.location.href = '/admin/dashboard';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+  }
+});
+// Kalau sudah login, langsung ke dashboard (fetch langsung, bukan lewat api() supaya tidak redirect loop saat 401)
+fetch('/api/auth/me', { credentials: 'include' }).then((r) => r.json()).then((r) => { if (r.username) window.location.href = '/admin/dashboard'; }).catch(() => {});
+</script>
+</body>
+</html>

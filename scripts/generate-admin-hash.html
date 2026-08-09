@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Password Admin (Offline) - SDN 01 Papahan</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#F8FAFC; color:#0F172A; max-width:640px; margin:40px auto; padding:0 20px; }
+  h1 { font-size:1.4rem; }
+  p.desc { color:#64748B; font-size:.9rem; line-height:1.5; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:16px 0 6px; }
+  input { width:100%; box-sizing:border-box; border:1px solid #E2E8F0; border-radius:8px; padding:10px 12px; font-size:.95rem; }
+  button { margin-top:20px; background:#2563EB; color:#fff; border:none; padding:12px 20px; border-radius:8px; font-size:.95rem; font-weight:600; cursor:pointer; }
+  button:hover { background:#1D4ED8; }
+  textarea { width:100%; box-sizing:border-box; margin-top:16px; min-height:110px; font-family:monospace; font-size:.82rem; padding:12px; border-radius:8px; border:1px solid #E2E8F0; background:#0F172A; color:#A7F3D0; }
+  .hint { font-size:.78rem; color:#94A3B8; margin-top:6px; }
+  .copy-btn { margin-top:8px; background:#F1F5F9; color:#334155; }
+  .copy-btn:hover { background:#E2E8F0; }
+  .note { background:#EFF6FF; border:1px solid #DBEAFE; border-radius:10px; padding:14px 16px; font-size:.85rem; color:#1E40AF; margin-top:24px; }
+</style>
+</head>
+<body>
+  <h1>🔐 Generator Password Admin (Offline, Tanpa Install Apa-apa)</h1>
+  <p class="desc">
+    File ini <b>tidak perlu di-upload atau di-deploy</b> — cukup buka langsung
+    di browser komputer Anda (dobel klik file-nya). Semua proses hash password
+    terjadi di browser Anda sendiri, tidak ada data yang dikirim ke internet.
+    Hasilnya berupa perintah SQL yang tinggal Anda tempel (paste) ke
+    <b>D1 Console</b> di Cloudflare Dashboard.
+  </p>
+
+  <label>Username Admin</label>
+  <input id="username" value="admin">
+
+  <label>Password Admin (buat yang kuat, minimal 8 karakter)</label>
+  <input id="password" type="text" placeholder="Contoh: SDN01Papahan!2026">
+
+  <button id="generate-btn">Buat Perintah SQL</button>
+
+  <div id="result" style="display:none">
+    <label>Salin (Copy) SQL di bawah ini, lalu tempel ke D1 Console:</label>
+    <textarea id="sql-output" readonly></textarea>
+    <button class="copy-btn" id="copy-btn">📋 Salin ke Clipboard</button>
+  </div>
+
+  <div class="note">
+    <b>Catatan:</b> Algoritma hash yang dipakai (PBKDF2-SHA256, 100.000 iterasi)
+    persis sama dengan yang dipakai Worker saat memverifikasi login, jadi hasil
+    dari halaman ini pasti kompatibel. Jangan bagikan password asli Anda ke
+    siapa pun — hanya hasil SQL di bawah yang perlu ditempel ke Cloudflare.
+  </div>
+
+<script>
+function bufToHex(buf) {
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function hashPassword(password) {
+    const iterations = 100000;
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+        keyMaterial,
+        256
+    );
+    return `${iterations}:${bufToHex(salt)}:${bufToHex(bits)}`;
+}
+
+function sqlEscape(str) {
+    return String(str).replace(/'/g, "''");
+}
+
+document.getElementById('generate-btn').addEventListener('click', async () => {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    if (!username || !password) { alert('Isi username dan password dulu.'); return; }
+    if (password.length < 8) { alert('Sebaiknya password minimal 8 karakter.'); return; }
+
+    const hash = await hashPassword(password);
+    const sql = `DELETE FROM admin WHERE id = 1;\nINSERT INTO admin (id, username, password_hash) VALUES (1, '${sqlEscape(username)}', '${hash}');`;
+
+    document.getElementById('sql-output').value = sql;
+    document.getElementById('result').style.display = 'block';
+});
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+    const el = document.getElementById('sql-output');
+    el.select();
+    document.execCommand('copy');
+    const btn = document.getElementById('copy-btn');
+    const original = btn.textContent;
+    btn.textContent = '✅ Tersalin!';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+});
+</script>
+</body>
+</html>
