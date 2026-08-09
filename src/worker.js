@@ -170,8 +170,6 @@ async function renderBeritaDetail(env, slug) {
   const nextRow = await env.DB.prepare(
     `SELECT slug, title FROM berita WHERE status='published' AND publish_at <= ? AND publish_at > ? ORDER BY publish_at ASC LIMIT 1`
   ).bind(nowIso, b.publishAt).first();
-  const footer = (await getStoreValue(env, 'footer')) || {};
-
   const bodyHtml = `
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex items-center gap-2 text-sm text-slateMuted mb-6 flex-wrap">
