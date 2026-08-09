@@ -1,0 +1,22 @@
+name = "sdn01papahan"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Static assets (HTML/CSS/JS) yang di-hosting langsung oleh Worker ini.
+# Request yang cocok dengan file di folder "public" akan otomatis disajikan
+# TANPA menjalankan kode src/index.js. Request lain (mis. /api/data) akan
+# diteruskan ke fetch handler di src/index.js.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sdn01papahan"
+database_id = "6163b82f-5de4-4db6-9b6c-d23ace9f6260"
+
+[vars]
+ALLOWED_ORIGIN = "https://sdn01papahan.sch.id"
+# SYNC_KEY sengaja TIDAK ditaruh di sini — set lewat:
+#   wrangler secret put SYNC_KEY
+# atau lewat Dashboard > Worker > Settings > Variables and Secrets (tipe: Secret)
