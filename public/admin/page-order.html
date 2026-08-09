@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Urutan Halaman - Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: { fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']}, colors: { primary:'#2563EB', primaryHover:'#1D4ED8', slateDark:'#0F172A', slateMuted:'#64748B' } } } }</script>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+<style>
+  .drag-row { cursor: grab; }
+  .drag-row.dragging { opacity: .4; }
+  .drag-row.locked { cursor: not-allowed; opacity: .7; }
+</style>
+</head>
+<body class="antialiased">
+<div class="flex">
+  <div id="admin-sidebar-root"></div>
+  <main class="flex-1 p-8 max-w-2xl">
+    <h1 class="text-2xl font-bold text-slateDark mb-1">Urutan Halaman</h1>
+    <p class="text-sm text-slateMuted mb-8">Seret untuk mengubah urutan menu. "Beranda" selalu pertama &amp; tidak bisa dinonaktifkan. Halaman kustom baru otomatis muncul di daftar ini tanpa menghapus urutan yang sudah ada.</p>
+    <div class="admin-card p-4">
+      <div id="order-list" class="space-y-2"></div>
+    </div>
+    <button id="save-btn" class="btn-primary mt-6">Simpan Urutan</button>
+  </main>
+</div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+let order = [];
+let dragFromIndex = null;
+
+/**
+ * Sinkronisasi halaman kustom ke dalam pageOrder TANPA reset urutan yang
+ * sudah ada (bug lama: urutan custom page reset tiap reload). Logikanya:
+ * - Entry lama untuk custom page yang sudah tidak ada lagi -> dihapus.
+ * - Custom page baru yang belum ada entry-nya -> ditambahkan di akhir.
+ * - Urutan & status "active" entry yang sudah ada -> TIDAK diubah sama sekali.
+ */
+function syncCustomPagesIntoOrder(order, customSections) {
+  const csIds = new Set(customSections.map((c) => 'custom:' + c.id));
+  const withoutStale = order.filter((o) => !o.key.startsWith('custom:') || csIds.has(o.key));
+  const existingKeys = new Set(withoutStale.map((o) => o.key));
+  const additions = customSections
+    .filter((c) => !existingKeys.has('custom:' + c.id))
+    .map((c) => ({ key: 'custom:' + c.id, slug: c.slug, label: c.menuLabel || c.title, icon: 'file-text', locked: false, active: !!c.active }));
+  return [...withoutStale, ...additions];
+}
+
+function renderList() {
+  const host = document.getElementById('order-list');
+  host.innerHTML = order.map((o, i) => `
+    <div class="flex items-center gap-3 border border-slate-100 rounded-xl p-3 drag-row ${o.locked ? 'locked' : ''}" draggable="${!o.locked}" data-index="${i}">
+      <i data-lucide="grip-vertical" class="w-4 h-4 text-slateMuted flex-shrink-0"></i>
+      <i data-lucide="${o.icon || 'file-text'}" class="w-4 h-4 text-primary flex-shrink-0"></i>
+      <span class="text-sm font-medium text-slateDark flex-1">${escHtml(o.label)}${o.key.startsWith('custom:') ? ' <span class="text-xs text-slateMuted">(kustom)</span>' : ''}</span>
+      <label class="flex items-center gap-1.5 text-xs text-slateMuted flex-shrink-0">
+        <input type="checkbox" data-active="${i}" ${o.active ? 'checked' : ''} ${o.locked ? 'disabled' : ''}> Aktif
+      </label>
+    </div>`).join('');
+
+  host.querySelectorAll('[data-active]').forEach((el) => el.addEventListener('change', () => { order[el.dataset.active].active = el.checked; }));
+
+  host.querySelectorAll('.drag-row[draggable="true"]').forEach((el) => {
+    el.addEventListener('dragstart', () => { dragFromIndex = parseInt(el.dataset.index, 10); el.classList.add('dragging'); });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('dragover', (e) => e.preventDefault());
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const toIndex = parseInt(el.dataset.index, 10);
+      if (dragFromIndex === null || order[toIndex].locked) return;
+      const [moved] = order.splice(dragFromIndex, 1);
+      order.splice(toIndex, 0, moved);
+      renderList();
+    });
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+(async () => {
+  await initAdminPage('page-order');
+  try {
+    const [orderRes, csRes] = await Promise.all([api('/api/store/pageOrder'), api('/api/custom-sections')]);
+    order = syncCustomPagesIntoOrder(orderRes.data || [], csRes.items || []);
+    renderList();
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      try { await api('/api/store/pageOrder', { method: 'PUT', body: JSON.stringify({ data: order }) }); toast('Urutan tersimpan'); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+  } catch (e) { toast(e.message, 'error'); }
+})();
+</script>
+</body>
+</html>

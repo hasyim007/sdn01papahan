@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prestasi & Ekstrakurikuler - Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: { fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']}, colors: { primary:'#2563EB', primaryHover:'#1D4ED8', slateDark:'#0F172A', slateMuted:'#64748B' } } } }</script>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="antialiased">
+<div class="flex">
+  <div id="admin-sidebar-root"></div>
+  <main class="flex-1 p-8 max-w-3xl">
+    <h1 class="text-2xl font-bold text-slateDark mb-1">Prestasi & Ekstrakurikuler</h1>
+    <p class="text-sm text-slateMuted mb-8">Halaman publik: <code>/prestasi</code></p>
+
+    <div class="admin-card p-6 mb-6">
+      <h2 class="font-bold text-slateDark mb-4">Judul Bagian Prestasi</h2>
+      <div id="prestasi-header-form"></div>
+      <button id="prestasi-header-save" class="btn-primary">Simpan Judul</button>
+    </div>
+    <div class="admin-card p-6 mb-10">
+      <h2 class="font-bold text-slateDark mb-4">Daftar Prestasi</h2>
+      <div id="prestasi-list"></div>
+    </div>
+
+    <div class="admin-card p-6 mb-6">
+      <h2 class="font-bold text-slateDark mb-4">Judul Bagian Ekstrakurikuler</h2>
+      <div id="ekskul-header-form"></div>
+      <button id="ekskul-header-save" class="btn-primary">Simpan Judul</button>
+    </div>
+    <div class="admin-card p-6">
+      <h2 class="font-bold text-slateDark mb-4">Daftar Ekstrakurikuler</h2>
+      <div id="ekskul-list"></div>
+    </div>
+  </main>
+</div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+(async () => {
+  await initAdminPage('prestasi');
+  try {
+    const ph = document.getElementById('prestasi-header-form');
+    const phd = (await api('/api/store/prestasiHeader')).data || {};
+    buildSimpleForm(ph, [
+      { key: 'eyebrow', label: 'Eyebrow', type: 'text' },
+      { key: 'titlePrefix', label: 'Judul (awal)', type: 'text' },
+      { key: 'titleHighlight', label: 'Judul (highlight)', type: 'text' },
+      { key: 'subtitle', label: 'Subjudul', type: 'textarea' },
+    ], phd);
+    document.getElementById('prestasi-header-save').addEventListener('click', async () => {
+      try { await api('/api/store/prestasiHeader', { method: 'PUT', body: JSON.stringify({ data: readSimpleForm(ph) }) }); toast('Tersimpan'); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+    await buildArrayManager(document.getElementById('prestasi-list'), 'prestasi', [
+      { key: 'photo', label: 'Foto', type: 'image' },
+      { key: 'badge', label: 'Badge (mis. PENCAPAIAN)', type: 'text' },
+      { key: 'date', label: 'Tanggal', type: 'text' },
+      { key: 'title', label: 'Judul Prestasi', type: 'text' },
+      { key: 'studentName', label: 'Nama Siswa', type: 'text' },
+    ], { titleField: 'title', subtitleField: 'studentName', thumbField: 'photo' });
+
+    const eh = document.getElementById('ekskul-header-form');
+    const ehd = (await api('/api/store/ekskulHeader')).data || {};
+    buildSimpleForm(eh, [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'subtitle', label: 'Subjudul', type: 'text' },
+    ], ehd);
+    document.getElementById('ekskul-header-save').addEventListener('click', async () => {
+      try { await api('/api/store/ekskulHeader', { method: 'PUT', body: JSON.stringify({ data: readSimpleForm(eh) }) }); toast('Tersimpan'); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+    await buildArrayManager(document.getElementById('ekskul-list'), 'ekskul', [
+      { key: 'icon', label: 'Ikon (Lucide)', type: 'text' },
+      { key: 'color', label: 'Warna Aksen', type: 'text' },
+      { key: 'name', label: 'Nama Ekstrakurikuler', type: 'text' },
+      { key: 'status', label: 'Status (Wajib/Pilihan)', type: 'text' },
+    ], { titleField: 'name', subtitleField: 'status' });
+  } catch (e) { toast(e.message, 'error'); }
+})();
+</script>
+</body>
+</html>

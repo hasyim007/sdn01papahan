@@ -1,0 +1,17 @@
+{
+  "name": "sdn01-papahan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Situs SDN 01 Papahan — MPA statis + Cloudflare Workers + D1",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:schema": "wrangler d1 execute sdn01-papahan-db --remote --file=./schema.sql",
+    "db:migrate:schema:local": "wrangler d1 execute sdn01-papahan-db --local --file=./schema.sql",
+    "db:migrate:data": "node scripts/migrate-from-json.js scripts/db-export.json",
+    "db:set-admin-password": "node scripts/set-admin-password.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

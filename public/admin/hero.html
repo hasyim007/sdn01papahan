@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hero & Statistik - Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: { fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']}, colors: { primary:'#2563EB', primaryHover:'#1D4ED8', slateDark:'#0F172A', slateMuted:'#64748B' } } } }</script>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="antialiased">
+<div class="flex">
+  <div id="admin-sidebar-root"></div>
+  <main class="flex-1 p-8 max-w-3xl">
+    <h1 class="text-2xl font-bold text-slateDark mb-1">Hero & Statistik</h1>
+    <p class="text-sm text-slateMuted mb-8">Konten utama pada bagian atas Beranda.</p>
+
+    <div class="admin-card p-6 mb-6">
+      <h2 class="font-bold text-slateDark mb-4">Identitas Situs</h2>
+      <div id="meta-form"></div>
+      <button id="meta-save" class="btn-primary">Simpan Identitas</button>
+    </div>
+
+    <div class="admin-card p-6 mb-6">
+      <h2 class="font-bold text-slateDark mb-4">Konten Hero</h2>
+      <div id="hero-form"></div>
+
+      <label class="field-label mt-2">Statistik (mis. "24+ Tenaga Pendidik")</label>
+      <div id="stats-rows" class="space-y-2 mb-3"></div>
+      <button id="stats-add" type="button" class="btn-secondary mb-4">+ Tambah Statistik</button>
+
+      <button id="hero-save" class="btn-primary">Simpan Hero</button>
+    </div>
+  </main>
+</div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+let stats = [];
+function renderStats() {
+  const host = document.getElementById('stats-rows');
+  host.innerHTML = stats.map((s, i) => `
+    <div class="flex gap-2 items-center">
+      <input class="field-input" style="max-width:120px" placeholder="Nilai (24+)" value="${escHtml(s.value || '')}" data-stat-value="${i}">
+      <input class="field-input" placeholder="Label (Tenaga Pendidik)" value="${escHtml(s.label || '')}" data-stat-label="${i}">
+      <button type="button" class="btn-danger" data-stat-del="${i}">Hapus</button>
+    </div>`).join('');
+  host.querySelectorAll('[data-stat-value]').forEach((el) => el.addEventListener('input', () => stats[el.dataset.statValue].value = el.value));
+  host.querySelectorAll('[data-stat-label]').forEach((el) => el.addEventListener('input', () => stats[el.dataset.statLabel].label = el.value));
+  host.querySelectorAll('[data-stat-del]').forEach((el) => el.addEventListener('click', () => { stats.splice(el.dataset.statDel, 1); renderStats(); }));
+}
+
+(async () => {
+  await initAdminPage('hero');
+  const metaForm = document.getElementById('meta-form');
+  const heroForm = document.getElementById('hero-form');
+  try {
+    const meta = (await api('/api/store/meta')).data || {};
+    const hero = (await api('/api/store/hero')).data || {};
+    stats = hero.stats || [];
+
+    buildSimpleForm(metaForm, [
+      { key: 'schoolName', label: 'Nama Sekolah', type: 'text' },
+      { key: 'schoolLocation', label: 'Lokasi', type: 'text' },
+      { key: 'logoText', label: 'Teks Logo (2 huruf)', type: 'text' },
+      { key: 'logoImage', label: 'Gambar Logo (opsional)', type: 'image' },
+      { key: 'pageTitle', label: 'Judul Halaman (SEO title default)', type: 'text' },
+      { key: 'navCtaText', label: 'Teks Tombol CTA Navbar', type: 'text' },
+    ], meta);
+
+    buildSimpleForm(heroForm, [
+      { key: 'badge', label: 'Badge Atas Headline', type: 'text' },
+      { key: 'headlinePrefix', label: 'Headline (awal)', type: 'text' },
+      { key: 'headlineHighlight', label: 'Headline (highlight warna)', type: 'text' },
+      { key: 'subtitle', label: 'Subtitle', type: 'textarea' },
+      { key: 'ctaPrimary', label: 'Teks Tombol Utama', type: 'text' },
+      { key: 'ctaSecondary', label: 'Teks Tombol Kedua', type: 'text' },
+      { key: 'images', label: 'Gambar Hero (URL, satu baris = satu gambar)', type: 'array-text' },
+      { key: 'badge1Title', label: 'Badge Akreditasi - Judul', type: 'text' },
+      { key: 'badge1Subtitle', label: 'Badge Akreditasi - Subjudul', type: 'text' },
+      { key: 'badge2Value', label: 'Badge Kelulusan - Nilai', type: 'text' },
+      { key: 'badge2Label', label: 'Badge Kelulusan - Label', type: 'text' },
+    ], hero);
+    renderStats();
+
+    document.getElementById('stats-add').addEventListener('click', () => { stats.push({ value: '', label: '' }); renderStats(); });
+    document.getElementById('meta-save').addEventListener('click', async () => {
+      try { await api('/api/store/meta', { method: 'PUT', body: JSON.stringify({ data: readSimpleForm(metaForm) }) }); toast('Identitas tersimpan'); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+    document.getElementById('hero-save').addEventListener('click', async () => {
+      try {
+        const data = { ...readSimpleForm(heroForm), stats };
+        await api('/api/store/hero', { method: 'PUT', body: JSON.stringify({ data }) });
+        toast('Hero tersimpan');
+      } catch (e) { toast(e.message, 'error'); }
+    });
+  } catch (e) { toast(e.message, 'error'); }
+})();
+</script>
+</body>
+</html>

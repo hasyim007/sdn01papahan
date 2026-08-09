@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halaman Kustom - Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: { fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']}, colors: { primary:'#2563EB', primaryHover:'#1D4ED8', slateDark:'#0F172A', slateMuted:'#64748B' } } } }</script>
+<link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body class="antialiased">
+<div class="flex">
+  <div id="admin-sidebar-root"></div>
+  <main class="flex-1 p-8 max-w-4xl">
+    <div class="flex justify-between items-center mb-1">
+      <h1 class="text-2xl font-bold text-slateDark">Halaman Kustom</h1>
+      <button id="new-btn" class="btn-primary flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Tambah Halaman</button>
+    </div>
+    <p class="text-sm text-slateMuted mb-8">Halaman tambahan dengan URL sendiri: <code>/[slug]</code>. Aktifkan &amp; sertakan di menu lewat <a href="/admin/page-order" class="text-primary underline">Urutan Halaman</a>.</p>
+
+    <div id="list-view" class="space-y-3"></div>
+
+    <div id="editor-view" class="hidden admin-card p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="font-bold text-slateDark" id="editor-title">Halaman Baru</h2>
+        <button id="editor-close" class="btn-secondary">Kembali ke Daftar</button>
+      </div>
+      <div id="editor-form"></div>
+
+      <label class="field-label mt-2">Item (kartu di dalam halaman)</label>
+      <div id="items-rows" class="space-y-3 mb-3"></div>
+      <button id="items-add" type="button" class="btn-secondary mb-6">+ Tambah Item</button>
+
+      <div class="flex gap-3">
+        <button id="editor-save" class="btn-primary">Simpan Halaman</button>
+        <button id="editor-delete" class="btn-danger hidden">Hapus Halaman</button>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+let currentId = null;
+let items = [];
+
+function slugify(text) {
+  return (text || '').toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+}
+
+function renderItems() {
+  const host = document.getElementById('items-rows');
+  host.innerHTML = items.map((it, i) => `
+    <div class="border border-slate-100 rounded-xl p-3 grid sm:grid-cols-3 gap-2">
+      <input class="field-input" placeholder="Ikon (Lucide)" value="${escHtml(it.icon || '')}" data-it-icon="${i}">
+      <input class="field-input" placeholder="Judul" value="${escHtml(it.title || '')}" data-it-title="${i}">
+      <div class="flex gap-2">
+        <input class="field-input" placeholder="Deskripsi" value="${escHtml(it.desc || '')}" data-it-desc="${i}">
+        <button type="button" class="btn-danger flex-shrink-0" data-it-del="${i}">X</button>
+      </div>
+    </div>`).join('');
+  host.querySelectorAll('[data-it-icon]').forEach((el) => el.addEventListener('input', () => items[el.dataset.itIcon].icon = el.value));
+  host.querySelectorAll('[data-it-title]').forEach((el) => el.addEventListener('input', () => items[el.dataset.itTitle].title = el.value));
+  host.querySelectorAll('[data-it-desc]').forEach((el) => el.addEventListener('input', () => items[el.dataset.itDesc].desc = el.value));
+  host.querySelectorAll('[data-it-del]').forEach((el) => el.addEventListener('click', () => { items.splice(el.dataset.itDel, 1); renderItems(); }));
+}
+
+async function loadList() {
+  const { items: list } = await api('/api/custom-sections');
+  const host = document.getElementById('list-view');
+  host.innerHTML = list.map((cs) => `
+    <div class="admin-card p-4 flex items-center justify-between gap-4 cursor-pointer" data-open="${cs.id}">
+      <div class="min-w-0">
+        <p class="font-semibold text-sm text-slateDark truncate">${escHtml(cs.title)}</p>
+        <p class="text-xs text-slateMuted truncate">/${escHtml(cs.slug)}</p>
+      </div>
+      <span class="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${cs.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slateMuted'}">${cs.active ? 'Aktif' : 'Nonaktif'}</span>
+    </div>`).join('') || '<p class="text-sm text-slateMuted text-center py-10">Belum ada halaman kustom.</p>';
+  host.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', () => openEditor(el.dataset.open, list.find((c) => c.id === el.dataset.open))));
+}
+
+function fieldsDef() {
+  return [
+    { key: 'title', label: 'Judul Halaman', type: 'text' },
+    { key: 'slug', label: 'Slug URL (otomatis dari judul, bisa diubah)', type: 'text' },
+    { key: 'menuLabel', label: 'Label di Menu Navigasi', type: 'text' },
+    { key: 'eyebrow', label: 'Eyebrow', type: 'text' },
+    { key: 'subtitle', label: 'Subjudul', type: 'textarea' },
+    { key: 'columns', label: 'Jumlah Kolom Grid (2/3/4)', type: 'text' },
+    { key: 'bgStyle', label: 'Warna Latar (gray/white)', type: 'text' },
+    { key: 'active', label: 'Tampilkan halaman ini di situs', type: 'checkbox' },
+  ];
+}
+
+function openEditor(id, data) {
+  currentId = id || null;
+  items = (data && data.items) || [];
+  document.getElementById('list-view').classList.add('hidden');
+  document.getElementById('editor-view').classList.remove('hidden');
+  document.getElementById('editor-title').textContent = id ? 'Edit Halaman' : 'Halaman Baru';
+  document.getElementById('editor-delete').classList.toggle('hidden', !id);
+
+  const form = document.getElementById('editor-form');
+  buildSimpleForm(form, fieldsDef(), data || { active: true, columns: '3' });
+  renderItems();
+
+  const titleInput = form.querySelector('[data-field="title"]');
+  const slugInput = form.querySelector('[data-field="slug"]');
+  if (!id) titleInput.addEventListener('input', () => { slugInput.value = slugify(titleInput.value); });
+}
+
+function closeEditor() {
+  document.getElementById('editor-view').classList.add('hidden');
+  document.getElementById('list-view').classList.remove('hidden');
+  loadList();
+}
+
+(async () => {
+  await initAdminPage('custom-sections');
+  await loadList();
+
+  document.getElementById('new-btn').addEventListener('click', () => openEditor(null, null));
+  document.getElementById('editor-close').addEventListener('click', closeEditor);
+  document.getElementById('items-add').addEventListener('click', () => { items.push({}); renderItems(); });
+
+  document.getElementById('editor-save').addEventListener('click', async () => {
+    const form = document.getElementById('editor-form');
+    const data = readSimpleForm(form);
+    data.id = currentId || undefined;
+    data.columns = parseInt(data.columns, 10) || 3;
+    data.items = items;
+    if (!data.slug) data.slug = slugify(data.title);
+    try {
+      await api('/api/custom-sections', { method: 'POST', body: JSON.stringify(data) });
+      toast('Halaman tersimpan');
+      closeEditor();
+    } catch (e) { toast(e.message, 'error'); }
+  });
+
+  document.getElementById('editor-delete').addEventListener('click', async () => {
+    if (!currentId || !confirm('Hapus halaman ini?')) return;
+    try { await api(`/api/custom-sections/${currentId}`, { method: 'DELETE' }); toast('Halaman dihapus'); closeEditor(); }
+    catch (e) { toast(e.message, 'error'); }
+  });
+})();
+</script>
+</body>
+</html>
