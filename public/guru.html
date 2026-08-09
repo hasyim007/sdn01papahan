@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenaga Pendidik — SDN 01 Papahan</title>
+    <meta name="description" content="Daftar tenaga pendidik SDN 01 Papahan.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = { theme: { extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+            colors: { primary: '#2563EB', primaryHover: '#1D4ED8', slateDark: '#0F172A', slateMuted: '#64748B', surface: '#FFFFFF', borderLight: '#F1F5F9' },
+            boxShadow: { 'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)', 'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)' }
+        } } };
+    </script>
+    <link rel="stylesheet" href="/assets/site.css">
+</head>
+<body class="antialiased overflow-x-hidden selection:bg-primary selection:text-white">
+<div id="public-view">
+    <nav class="fixed w-full z-50 transition-all duration-300 glass" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <a href="/" class="flex-shrink-0 flex items-center gap-3 cursor-pointer">
+                    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-soft" id="brand-logo">S1</div>
+                    <div><h1 class="font-bold text-slateDark text-lg leading-tight" id="brand-name">SDN 01 Papahan</h1><p class="text-xs text-slateMuted" id="brand-location">Kabupaten Karanganyar</p></div>
+                </a>
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="/" class="px-3 py-2 rounded-lg text-sm font-medium text-slateMuted hover:text-slateDark hover:bg-slate-100 transition">Beranda</a>
+                    <a href="/#sambutan" class="px-3 py-2 rounded-lg text-sm font-medium text-slateMuted hover:text-slateDark hover:bg-slate-100 transition">Sambutan</a>
+                    <a href="/profil" class="px-3 py-2 rounded-lg text-sm font-medium text-slateMuted hover:text-slateDark hover:bg-slate-100 transition">Profil</a>
+                    <a href="/program" class="px-3 py-2 rounded-lg text-sm font-medium text-slateMuted hover:text-slateDark hover:bg-slate-100 transition">Program</a>
+                    <a href="/guru" class="px-3 py-2 rounded-lg text-sm font-medium text-primary bg-blue-50 transition">Pengajar</a>
+                    <a href="/berita" class="px-3 py-2 rounded-lg text-sm font-medium text-slateMuted hover:text-slateDark hover:bg-slate-100 transition">Informasi</a>
+                    <div class="relative group">
+                        <button class="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-slateMuted hover:text-slateDark hover:bg-slate-100 transition">Lainnya <i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-glass border border-borderLight opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
+                            <div class="py-2">
+                                <a href="/prestasi" class="block px-4 py-2 text-sm text-slateMuted hover:bg-slate-50 hover:text-primary">Prestasi</a>
+                                <a href="/prestasi#ekskul" class="block px-4 py-2 text-sm text-slateMuted hover:bg-slate-50 hover:text-primary">Ekstrakurikuler</a>
+                                <a href="/galeri" class="block px-4 py-2 text-sm text-slateMuted hover:bg-slate-50 hover:text-primary">Galeri</a>
+                                <a href="/galeri#testimoni" class="block px-4 py-2 text-sm text-slateMuted hover:bg-slate-50 hover:text-primary">Testimoni</a>
+                                <a href="/kontak" class="block px-4 py-2 text-sm text-slateMuted hover:bg-slate-50 hover:text-primary">FAQ</a>
+                                <div id="nav-custom-links"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="/kontak" class="hidden md:inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-primary hover:bg-primaryHover shadow-soft transition-colors" id="nav-cta-text">Hubungi Kami</a>
+                    <a href="/admin/login.html" title="Login Admin CMS" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 border border-slate-200 text-sm font-medium rounded-xl text-slateDark bg-white hover:bg-slate-50 hover:border-primary/40 transition-colors">
+                        <i data-lucide="lock" class="w-4 h-4"></i><span class="hidden sm:inline">Login Admin</span>
+                    </a>
+                    <button class="lg:hidden p-2 rounded-lg text-slateMuted hover:bg-slate-100" id="mobile-menu-btn"><i data-lucide="menu" class="w-6 h-6"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="lg:hidden hidden bg-white border-t border-borderLight shadow-soft absolute w-full" id="mobile-menu">
+            <div class="px-4 pt-2 pb-6 space-y-1">
+                <a href="/" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Beranda</a>
+                <a href="/#sambutan" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Sambutan</a>
+                <a href="/profil" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Profil</a>
+                <a href="/program" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Program</a>
+                <a href="/guru" class="block px-3 py-3 rounded-lg text-base font-medium text-primary bg-blue-50">Pengajar</a>
+                <a href="/prestasi" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Prestasi</a>
+                <a href="/galeri" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Galeri</a>
+                <a href="/berita" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">Berita & Agenda</a>
+                <a href="/kontak" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">FAQ</a>
+                <div id="mobile-nav-custom-links"></div>
+            </div>
+        </div>
+    </nav>
+
+    <section id="pengajar" class="py-20 bg-white pt-32 lg:pt-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <span class="inline-flex items-center px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold tracking-wide uppercase mb-4" id="guru-eyebrow">Tenaga Pendidik</span>
+                <h3 class="text-3xl sm:text-4xl font-extrabold text-slateDark mb-4"><span id="guru-title-prefix">Guru</span> <span class="text-indigo-500" id="guru-title-highlight">Profesional & Dedikatif</span></h3>
+                <p class="text-slateMuted text-lg max-w-2xl mx-auto" id="guru-subtitle"></p>
+            </div>
+            <div class="relative">
+                <button id="guru-prev" onclick="scrollGuruCarousel(-1)" aria-label="Sebelumnya" class="hidden md:flex absolute -left-5 top-[104px] z-10 w-11 h-11 rounded-full bg-white shadow-lg border border-borderLight items-center justify-center text-slateDark hover:bg-slate-50 hover:text-primary transition"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                <button id="guru-next" onclick="scrollGuruCarousel(1)" aria-label="Berikutnya" class="hidden md:flex absolute -right-5 top-[104px] z-10 w-11 h-11 rounded-full bg-white shadow-lg border border-borderLight items-center justify-center text-slateDark hover:bg-slate-50 hover:text-primary transition"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                <div id="guru-track" class="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pb-2 -mx-1 px-1" onscroll="handleGuruScroll()"></div>
+            </div>
+            <div id="guru-dots" class="flex justify-center gap-2 mt-8"></div>
+        </div>
+    </section>
+
+    <footer class="bg-white border-t border-borderLight pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-sm" id="footer-logo">S1</div>
+                        <h2 class="font-bold text-slateDark text-lg" id="footer-brand-name">SDN 01 Papahan</h2>
+                    </div>
+                    <p class="text-sm text-slateMuted max-w-sm mb-6" id="footer-desc"></p>
+                    <div class="flex space-x-4">
+                        <a href="#" id="footer-social-facebook" class="text-slate-400 hover:text-primary transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a>
+                        <a href="#" id="footer-social-instagram" class="text-slate-400 hover:text-primary transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a>
+                        <a href="#" id="footer-social-youtube" class="text-slate-400 hover:text-primary transition-colors"><i data-lucide="youtube" class="w-5 h-5"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slateDark mb-4">Tautan Cepat</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/profil" class="text-slateMuted hover:text-primary transition-colors">Profil Sekolah</a></li>
+                        <li><a href="/program" class="text-slateMuted hover:text-primary transition-colors">Program & Kurikulum</a></li>
+                        <li><a href="/berita" class="text-slateMuted hover:text-primary transition-colors">Berita Terkini</a></li>
+                        <li><a href="/kontak" class="text-slateMuted hover:text-primary transition-colors">PPDB 2026</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slateDark mb-4">Akses Internal</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-slateMuted hover:text-primary transition-colors">Portal E-Rapor</a></li>
+                        <li><a href="#" class="text-slateMuted hover:text-primary transition-colors">Perpustakaan Digital</a></li>
+                        <li><a href="/admin/login.html" class="text-slateMuted hover:text-primary transition-colors">Login Guru & Staf</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-xs text-slate-500" id="footer-copyright"></p>
+                <div class="flex gap-4 text-xs text-slate-500"><a href="#" class="hover:text-slateDark">Kebijakan Privasi</a><a href="#" class="hover:text-slateDark">Syarat Ketentuan</a></div>
+            </div>
+        </div>
+    </footer>
+</div>
+<script src="/assets/sections.js"></script>
+<script src="/assets/site.js"></script>
+<script>
+document.addEventListener('site-data-ready', (e) => {
+  const data = e.detail;
+  renderMetaSection(data);
+  renderGuruSection(data);
+  renderKontakFooterSection(data);
+  reInitIcons();
+});
+</script>
+</body>
+</html>

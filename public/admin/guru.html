@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tenaga Pendidik — Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: {
+  colors: { primary: '#2563EB', primaryHover: '#1D4ED8', slateDark: '#0F172A', slateMuted: '#64748B' }
+} } };</script>
+</head>
+<body class="bg-slate-50" data-section="guru">
+<div id="admin-shell" class="min-h-screen flex"></div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+window.renderAdminSection = function(main) {
+  const fields = [
+    { key: 'name', label: 'Nama' },
+    { key: 'role', label: 'Jabatan' },
+    { key: 'experience', label: 'Pengalaman' },
+    { key: 'education', label: 'Pendidikan Terakhir' },
+    { key: 'photo', label: 'Foto', type: 'image' }
+  ];
+  const headerFields = [
+    { key: 'eyebrow', label: 'Eyebrow' },
+    { key: 'titlePrefix', label: 'Judul (awal)' },
+    { key: 'titleHighlight', label: 'Judul (disorot)' },
+    { key: 'subtitle', label: 'Subjudul', type: 'textarea' }
+  ];
+  renderListEditor(main, 'guru', fields, 'Tenaga Pendidik', 'Direktori guru dan staf pengajar.',
+    { headerFields, headerKey: 'guruHeader' });
+};
+</script>
+</body>
+</html>

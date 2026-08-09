@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sdn01papahan",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-01-01",
+  "assets": {
+    // Semua file di public/ disajikan sebagai Static Assets. run_worker_first
+    // "/*" membuat SETIAP request masuk ke Worker dulu — Worker yang
+    // memutuskan: layani lewat env.ASSETS.fetch() untuk file statis yang
+    // memang ada, atau render dinamis untuk /berita*, /sitemap.xml,
+    // /robots.txt, /api/*, dan halaman kustom (/[slug-custom], slug-nya
+    // tidak diketahui saat deploy karena dibuat dari admin, jadi tidak bisa
+    // didaftarkan sebagai path statis di sini).
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sdn01papahan",
+      "database_id": "bfea63bf-ab4b-419d-b3b1-843c4bfbce74"
+    }
+  ],
+  "vars": {
+    "SITE_URL": "https://sdn01papahan.contoh-domain.workers.dev"
+  }
+}

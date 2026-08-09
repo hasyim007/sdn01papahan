@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halaman Kustom — Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: {
+  colors: { primary: '#2563EB', primaryHover: '#1D4ED8', slateDark: '#0F172A', slateMuted: '#64748B' }
+} } };</script>
+</head>
+<body class="bg-slate-50" data-section="custom-sections">
+<div id="admin-shell" class="min-h-screen flex"></div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+window.renderAdminSection = function(main) {
+  main.innerHTML = pageHeader('Halaman Kustom', 'Tambah halaman tambahan di luar bagian baku (mis. "Fasilitas Sekolah"). Setiap halaman punya URL sendiri: sdn01papahan.sch.id/[slug].') + `
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="font-semibold text-slateDark">Daftar Halaman Kustom</h2>
+      <button id="add-cs-btn" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold">+ Tambah Halaman</button>
+    </div>
+    <div id="cs-table" class="space-y-3"></div>
+    <div id="cs-modal" class="hidden fixed inset-0 bg-black/40 items-center justify-center p-4 z-50 overflow-y-auto">
+      <div class="bg-white rounded-2xl p-6 max-w-2xl w-full my-8">
+        <h3 class="font-bold text-slateDark mb-4" id="cm-title">Halaman Kustom</h3>
+        <div class="space-y-4" id="cm-fields"></div>
+        <div class="mt-6 flex justify-between items-center">
+          <h4 class="text-sm font-semibold text-slateDark">Item Konten</h4>
+          <button id="cm-add-item" class="text-primary text-xs font-semibold">+ Tambah Item</button>
+        </div>
+        <div id="cm-items" class="space-y-3 mt-3"></div>
+        <div class="flex gap-3 mt-6">
+          <button id="cm-save" class="flex-1 px-4 py-2.5 bg-primary text-white rounded-lg font-semibold">Simpan</button>
+          <button id="cm-cancel" class="px-4 py-2.5 border border-slate-200 rounded-lg">Batal</button>
+        </div>
+      </div>
+    </div>`;
+
+  let editing = null;
+  let currentItems = [];
+
+  async function load() {
+    const items = await (await fetch('/api/admin/custom-sections')).json();
+    document.getElementById('cs-table').innerHTML = items.map(c => `
+      <div class="bg-white rounded-xl border border-slate-100 p-4 flex justify-between items-center gap-3">
+        <div class="min-w-0">
+          <p class="font-semibold text-slateDark text-sm truncate">${esc(c.title)}</p>
+          <p class="text-xs text-slateMuted">/${esc(c.slug)} · ${c.active ? 'Aktif' : 'Nonaktif'} · ${c.items.length} item</p>
+        </div>
+        <div class="flex gap-2 flex-shrink-0">
+          <button class="edit-c text-primary text-xs font-semibold" data-id="${c.id}">Edit</button>
+          <button class="del-c text-red-600 text-xs font-semibold" data-id="${c.id}">Hapus</button>
+        </div>
+      </div>`).join('') || '<p class="text-sm text-slateMuted">Belum ada halaman kustom.</p>';
+
+    document.querySelectorAll('.edit-c').forEach(b => b.addEventListener('click', () => openModal(items.find(i => i.id === b.dataset.id))));
+    document.querySelectorAll('.del-c').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Hapus halaman kustom ini? Pastikan juga menghapusnya dari Urutan Halaman.')) return;
+      await fetch('/api/admin/custom-sections/' + b.dataset.id, { method: 'DELETE' });
+      toast('Halaman dihapus.'); load();
+    }));
+  }
+
+  function renderItemsEditor() {
+    document.getElementById('cm-items').innerHTML = currentItems.map((it, i) => `
+      <div class="border border-slate-200 rounded-lg p-3 space-y-2">
+        <div class="flex justify-between">
+          <span class="text-xs font-semibold text-slateMuted">Item ${i + 1}</span>
+          <button class="rm-item text-red-600 text-xs" data-i="${i}">Hapus</button>
+        </div>
+        <input type="text" data-item-f="icon" data-i="${i}" placeholder="Ikon Lucide (mis. book-open)" value="${esc(it.icon || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+        <input type="text" data-item-f="title" data-i="${i}" placeholder="Judul item" value="${esc(it.title || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+        <textarea data-item-f="desc" data-i="${i}" placeholder="Deskripsi item" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">${esc(it.desc || '')}</textarea>
+      </div>`).join('');
+    document.querySelectorAll('.rm-item').forEach(b => b.addEventListener('click', () => { currentItems.splice(Number(b.dataset.i), 1); renderItemsEditor(); }));
+    document.querySelectorAll('[data-item-f]').forEach(el => el.addEventListener('input', () => {
+      currentItems[Number(el.dataset.i)][el.dataset.itemF] = el.value;
+    }));
+  }
+
+  function openModal(item) {
+    editing = item || null;
+    currentItems = item ? JSON.parse(JSON.stringify(item.items || [])) : [];
+    document.getElementById('cm-title').textContent = item ? 'Edit Halaman Kustom' : 'Tambah Halaman Kustom';
+    const d = item || { active: true, columns: 3, bgStyle: 'gray' };
+    document.getElementById('cm-fields').innerHTML = `
+      <div><label class="block text-xs font-semibold text-slateDark mb-1">Judul Halaman</label>
+        <input type="text" data-cf="title" value="${esc(d.title || '')}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200"></div>
+      <div><label class="block text-xs font-semibold text-slateDark mb-1">Slug URL (kosongkan untuk otomatis)</label>
+        <input type="text" data-cf="slug" value="${esc(d.slug || '')}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200"></div>
+      <div><label class="block text-xs font-semibold text-slateDark mb-1">Label di Menu Navigasi</label>
+        <input type="text" data-cf="menuLabel" value="${esc(d.menuLabel || '')}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200"></div>
+      <div><label class="block text-xs font-semibold text-slateDark mb-1">Eyebrow</label>
+        <input type="text" data-cf="eyebrow" value="${esc(d.eyebrow || '')}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200"></div>
+      <div><label class="block text-xs font-semibold text-slateDark mb-1">Subjudul</label>
+        <textarea data-cf="subtitle" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">${esc(d.subtitle || '')}</textarea></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-slateDark mb-1">Jumlah Kolom</label>
+          <input type="number" min="1" max="4" data-cf="columns" value="${d.columns || 3}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200"></div>
+        <div><label class="block text-xs font-semibold text-slateDark mb-1">Status</label>
+          <select data-cf="active" class="w-full px-4 py-2.5 rounded-lg border border-slate-200">
+            <option value="true" ${d.active !== false ? 'selected' : ''}>Aktif</option>
+            <option value="false" ${d.active === false ? 'selected' : ''}>Nonaktif</option>
+          </select></div>
+      </div>`;
+    renderItemsEditor();
+    document.getElementById('cs-modal').classList.remove('hidden');
+    document.getElementById('cs-modal').classList.add('flex');
+  }
+  function closeModal() {
+    document.getElementById('cs-modal').classList.add('hidden');
+    document.getElementById('cs-modal').classList.remove('flex');
+  }
+
+  document.getElementById('add-cs-btn').addEventListener('click', () => openModal(null));
+  document.getElementById('cm-cancel').addEventListener('click', closeModal);
+  document.getElementById('cm-add-item').addEventListener('click', () => { currentItems.push({ icon: '', title: '', desc: '' }); renderItemsEditor(); });
+  document.getElementById('cm-save').addEventListener('click', async () => {
+    const payload = { items: currentItems };
+    document.querySelectorAll('[data-cf]').forEach(el => {
+      payload[el.dataset.cf] = el.dataset.cf === 'active' ? el.value === 'true' : el.value;
+    });
+    const method = editing ? 'PUT' : 'POST';
+    const url = editing ? '/api/admin/custom-sections/' + editing.id : '/api/admin/custom-sections';
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (res.ok) { toast('Halaman kustom disimpan. Cek juga menu Urutan Halaman.'); closeModal(); load(); } else { toast('Gagal menyimpan.'); }
+  });
+
+  load();
+};
+</script>
+</body>
+</html>

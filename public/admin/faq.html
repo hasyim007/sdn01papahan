@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ — Admin SDN 01 Papahan</title>
+<meta name="robots" content="noindex, nofollow">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>tailwind.config = { theme: { extend: {
+  colors: { primary: '#2563EB', primaryHover: '#1D4ED8', slateDark: '#0F172A', slateMuted: '#64748B' }
+} } };</script>
+</head>
+<body class="bg-slate-50" data-section="faq">
+<div id="admin-shell" class="min-h-screen flex"></div>
+<script src="/admin/assets/admin.js"></script>
+<script>
+window.renderAdminSection = function(main) {
+  const fields = [
+    { key: 'q', label: 'Pertanyaan' },
+    { key: 'a', label: 'Jawaban', type: 'textarea' }
+  ];
+  renderListEditor(main, 'faq', fields, 'FAQ', 'Pertanyaan yang sering diajukan.');
+};
+</script>
+</body>
+</html>

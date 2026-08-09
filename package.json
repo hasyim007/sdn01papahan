@@ -1,0 +1,16 @@
+{
+  "name": "sdn01papahan",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 execute sdn01papahan-db --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute sdn01papahan-db --remote --file=./schema.sql",
+    "db:seed:local": "wrangler d1 execute sdn01papahan-db --local --file=./migration/seed.sql",
+    "db:seed:remote": "wrangler d1 execute sdn01papahan-db --remote --file=./migration/seed.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

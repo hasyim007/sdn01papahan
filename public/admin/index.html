@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — SDN 01 Papahan</title>
+<script>
+  fetch('/api/auth/me').then(r => r.json()).then(d => {
+    window.location.replace(d.loggedIn ? '/admin/dashboard.html' : '/admin/login.html');
+  }).catch(() => window.location.replace('/admin/login.html'));
+</script>
+</head>
+<body></body>
+</html>
