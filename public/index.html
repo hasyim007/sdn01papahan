@@ -812,7 +812,7 @@ const STORAGE_KEY = 'sdn01papahan_cms_db_v1';
    mis: 'https://papahan-api.username.workers.dev' atau custom domain Worker.
    Kosongkan ('') untuk menonaktifkan sinkronisasi cloud (localStorage saja).
 ========================================================================= */
-const CLOUD_API_BASE = 'https://sdn01papahan.sdn01papahan.workers.dev/'; // <-- ISI URL WORKER DI SINI, mis: 'https://papahan-api.username.workers.dev'
+const CLOUD_API_BASE = 'https://sdn01papahan.sdn01papahan.workers.dev'; // <-- ISI URL WORKER DI SINI, mis: 'https://papahan-api.username.workers.dev'
 const SYNC_KEY_STORAGE = 'sdn01papahan_sync_key';
 const CLOUD_PUSH_DEBOUNCE_MS = 1500;
 let cloudSyncStatus = { state: 'idle', message: '', lastSyncedAt: null }; // idle | syncing | success | error | offline
