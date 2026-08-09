@@ -11,6 +11,6 @@
     "db:seed:remote": "wrangler d1 execute sdn01papahan-db --remote --file=./migration/seed.sql"
   },
   "devDependencies": {
-    "wrangler": "^3.90.0"
+    "wrangler": "^4.20.0"
   }
 }
