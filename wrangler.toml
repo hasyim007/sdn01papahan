@@ -16,7 +16,7 @@ database_name = "sdn01papahan"
 database_id = "8e7053a6-1aad-46a2-a8dd-2d9baf3a3e39"
 
 [vars]
-ALLOWED_ORIGIN = "https://sdn01papahan.sch.id"
+ALLOWED_ORIGIN = "https://sdn01papahan.sdn01papahan.workers.dev"
 # SYNC_KEY sengaja TIDAK ditaruh di sini — set lewat:
 #   wrangler secret put SYNC_KEY
 # atau lewat Dashboard > Worker > Settings > Variables and Secrets (tipe: Secret)
