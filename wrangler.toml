@@ -1,0 +1,36 @@
+name = "sdn01papahan"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Static assets (HTML/CSS/JS) yang di-hosting langsung oleh Worker ini.
+# PENTING: default Cloudflare adalah asset statis MENANG lebih dulu — kalau path cocok
+# file di folder "public" (termasuk "/" -> public/index.html), request itu TIDAK PERNAH
+# sampai ke src/index.js. Karena hampir semua isi situs sekarang memang harus diputuskan
+# oleh src/index.js (SSR per halaman + fallback ke index.html buat /admin), Worker WAJIB
+# selalu jalan duluan untuk SEMUA request — makanya run_worker_first di-set true (bukan
+# cuma untuk "/"), lalu src/index.js sendiri yang memanggil env.ASSETS.fetch() secara
+# eksplisit untuk path yang belum ada rute SSR-nya.
+#
+# not_found_handling="404-page": situs ini sudah MPA (bukan SPA lagi), jadi path yang
+# tidak dikenal (typo, link lama, dll) harus balikin 404 biasa — BUKAN fallback ke
+# public/index.html seperti sebelumnya. Fallback SPA lama itu sempat membuat file
+# public/index.html (dulu berisi seluruh kode panel admin peninggalan SPA) ikut
+# terkirim ke publik untuk setiap URL yang tidak cocok rute manapun. public/index.html
+# sekarang cuma halaman redirect kosong ke "/", tapi kita tetap matikan mode SPA-nya
+# supaya perilaku 404 benar dan tidak bergantung pada isi file itu tetap "aman".
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "404-page"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sdn01papahan"
+database_id = "4f1ee75e-2128-4787-8e4a-a63129f28939"
+
+[vars]
+ALLOWED_ORIGIN = "https://sdn01papahan.sch.id"
+# SYNC_KEY sengaja TIDAK ditaruh di sini — set lewat:
+#   wrangler secret put SYNC_KEY
+# atau lewat Dashboard > Worker > Settings > Variables and Secrets (tipe: Secret)
