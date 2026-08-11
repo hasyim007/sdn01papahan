@@ -1,0 +1,33 @@
+name = "sdn01papahan"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Static assets (HTML/CSS/JS) yang di-hosting langsung oleh Worker ini.
+# Secara default, request yang cocok dengan file di folder "public" akan
+# disajikan LANGSUNG tanpa menjalankan src/index.js.
+#
+# Kekecualian penting: "run_worker_first" membuat path-path tertentu tetap
+# lewat Worker DULU sebelum file statisnya dikirim. Ini dipakai untuk
+# melindungi /admin.html — Worker mengecek cookie sesi login lebih dulu;
+# kalau tidak valid, browser dialihkan ke /login.html dan ISI DASHBOARD
+# TIDAK PERNAH terkirim ke browser tersebut sama sekali (bukan cuma
+# disembunyikan lewat CSS/JS, tapi memang tidak pernah dikirim server).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/admin.html", "/admin", "/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sdn01papahan"
+database_id = "0b03276a-9f18-4afa-bd65-86c9f435e716"
+
+[vars]
+# Origin resmi situs ini (dipakai untuk header CORS). Sesuaikan dengan
+# domain asli Anda; kalau masih di *.workers.dev, isi origin workers.dev-nya.
+ALLOWED_ORIGIN = "https://sdn01papahan.sch.id"
+
+# Catatan: mekanisme SYNC_KEY / X-Sync-Key lama SUDAH TIDAK DIPAKAI.
+# Otorisasi sekarang memakai sesi login (cookie HttpOnly) yang dibuat oleh
+# POST /api/login setelah verifikasi username+password ke tabel admin_users
+# di D1 (lihat schema.sql). Tidak ada secret yang perlu di-set manual lagi.

@@ -1,0 +1,3070 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - SDN 01 Papahan</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Config for Custom Colors and Fonts -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#2563EB',
+                        primaryHover: '#1D4ED8',
+                        slateDark: '#0F172A',
+                        slateMuted: '#64748B',
+                        surface: '#FFFFFF',
+                        borderLight: '#F1F5F9',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <style>
+        body { background-color: #F8FAFC; color: #0F172A; }
+        .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.5); }
+        .glass-darker { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid #F1F5F9; }
+        .inst-card { background: #FFFFFF; border: 1px solid #F1F5F9; border-radius: 16px; box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); transition: all 0.3s ease; }
+        .inst-card:hover { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+        html { scroll-behavior: smooth; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .hidden-important { display: none !important; }
+        #admin-view { min-height: 100vh; }
+        .admin-nav-item.active { background-color: #EFF6FF; color: #2563EB; font-weight: 600; }
+        .admin-nav-item.active i { color: #2563EB; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; }
+        /* Ratakan (justify) semua teks deskripsi di seluruh halaman */
+        p.text-slateMuted, p.text-slate-300 { text-align: justify; }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden selection:bg-primary selection:text-white">
+
+<!-- =========================================================
+     PUBLIC SITE (Beranda)
+========================================================= -->
+<!-- =========================================================
+     ADMIN DASHBOARD (CMS)
+========================================================= -->
+<div id="admin-view" class="hidden-important bg-slate-50">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-72 shrink-0 bg-white border-r border-borderLight flex flex-col fixed h-screen z-20" id="admin-sidebar">
+            <div class="h-20 flex items-center gap-3 px-6 border-b border-borderLight shrink-0">
+                <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-soft">S1</div>
+                <div>
+                    <h1 class="font-bold text-slateDark text-sm leading-tight">CMS Dashboard</h1>
+                    <p class="text-xs text-slateMuted">SDN 01 Papahan</p>
+                </div>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1" id="admin-nav"></nav>
+            <div class="p-3 border-t border-borderLight shrink-0">
+                <a href="/" target="_blank" rel="noopener" class="admin-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slateMuted hover:bg-slate-100 transition">
+                    <i data-lucide="external-link" class="w-4 h-4"></i> Lihat Situs Publik
+                </a>
+                <button onclick="handleLogout()" type="button" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 ml-72 p-8">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-slateDark" id="admin-panel-title">Dashboard</h2>
+                    <p class="text-sm text-slateMuted" id="admin-panel-subtitle">Ringkasan konten website.</p>
+                </div>
+                <div class="flex items-center gap-2 text-sm text-slateMuted">
+                    <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm" id="admin-avatar">A</div>
+                    <span id="admin-username-label" class="font-medium text-slateDark">admin</span>
+                </div>
+            </div>
+            <div id="admin-panel-content"></div>
+        </main>
+    </div>
+</div>
+
+<!-- GENERIC ITEM MODAL -->
+<div id="item-modal" class="hidden-important fixed inset-0 z-[110] items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slateDark/60 backdrop-blur-sm" onclick="closeItemModal()"></div>
+    <div class="relative bg-white w-full max-w-lg rounded-2xl shadow-glass p-8 max-h-[90vh] overflow-y-auto">
+        <button onclick="closeItemModal()" class="absolute top-4 right-4 text-slateMuted hover:text-slateDark">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <h3 class="text-lg font-bold text-slateDark mb-1" id="item-modal-title">Tambah Data</h3>
+        <p class="text-sm text-slateMuted mb-6" id="item-modal-subtitle">Lengkapi data di bawah ini.</p>
+        <form id="item-modal-form" onsubmit="event.preventDefault(); saveItemModal();" class="space-y-4">
+            <div id="item-modal-fields" class="space-y-4"></div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeItemModal()" class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slateDark text-sm font-semibold hover:bg-slate-50 transition-colors">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Tambah/Edit Halaman-Section Kustom -->
+<div id="custom-section-modal" class="hidden-important fixed inset-0 z-[110] items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slateDark/60 backdrop-blur-sm" onclick="closeCustomSectionModal()"></div>
+    <div class="relative bg-white w-full max-w-xl rounded-2xl shadow-glass p-8 max-h-[90vh] overflow-y-auto">
+        <button onclick="closeCustomSectionModal()" class="absolute top-4 right-4 text-slateMuted hover:text-slateDark">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div id="custom-section-modal-body"></div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="confirm-modal" class="hidden-important fixed inset-0 z-[120] items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slateDark/60 backdrop-blur-sm"></div>
+    <div class="relative bg-white w-full max-w-sm rounded-2xl shadow-glass p-8 text-center">
+        <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600 mx-auto mb-4">
+            <i data-lucide="trash-2" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slateDark mb-2">Hapus data ini?</h3>
+        <p class="text-sm text-slateMuted mb-6">Tindakan ini tidak dapat dibatalkan.</p>
+        <div class="flex gap-3">
+            <button onclick="closeConfirmModal()" class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slateDark text-sm font-semibold hover:bg-slate-50 transition-colors">Batal</button>
+            <button id="confirm-modal-btn" class="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">Hapus</button>
+        </div>
+    </div>
+</div>
+
+<!-- Message Toast -->
+<div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-[150]">
+    <div class="bg-slateDark text-white px-6 py-3 rounded-xl shadow-glass flex items-center gap-3">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400" id="toast-icon"></i>
+        <span class="text-sm font-medium" id="toast-text">Pesan berhasil dikirim!</span>
+    </div>
+</div>
+
+<script>
+// Prefix key untuk halaman kustom di dalam DB.pageOrder (mis. "custom:cs_xxxx").
+const STORAGE_KEY = 'sdn01_cms_data';
+const CUSTOM_PAGE_KEY_PREFIX = 'custom:';
+
+const DEFAULT_DB = {
+    // Kredensial admin TIDAK lagi disimpan di sini / di objek DB.
+    // Login & sesi sepenuhnya diverifikasi oleh server (lihat /api/login, /api/session).
+    meta: {
+        logoText: 'S1',
+        logoImage: '',
+        schoolName: 'SDN 01 Papahan',
+        schoolLocation: 'Kabupaten Karanganyar',
+        pageTitle: 'SDN 01 Papahan - Cerdas, Berakhlak, Berprestasi',
+        navCtaText: 'Hubungi Kami'
+    },
+    hero: {
+        badge: 'Penerimaan Siswa Baru 2026/2027 Dibuka',
+        headlinePrefix: 'Membentuk Generasi',
+        headlineHighlight: 'Cerdas & Berkarakter',
+        subtitle: 'Sekolah Dasar Negeri 01 Papahan berkomitmen memberikan pendidikan berkualitas dengan lingkungan belajar yang modern, aman, dan inovatif untuk putra-putri Anda.',
+        ctaPrimary: 'Kenali Kami Lebih Dekat',
+        ctaSecondary: 'Lihat Program',
+        images: [
+            'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=1000&h=800',
+            'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1000&h=800',
+            'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=1000&h=800'
+        ],
+        stats: [
+            { value: '24+', label: 'Tenaga Pendidik' },
+            { value: '500+', label: 'Siswa Aktif' },
+            { value: '15+', label: 'Ekstrakurikuler' }
+        ],
+        badge1Title: 'Akreditasi A',
+        badge1Subtitle: 'BAN-S/M',
+        badge2Value: '98%',
+        badge2Label: 'Tingkat Kelulusan'
+    },
+    sambutan: {
+        badge: 'Sambutan Kepala Sekolah',
+        titlePrefix: 'Selamat Datang di',
+        titleHighlight: 'SDN 01 Papahan',
+        paragraphs: [
+            'Puji syukur kami panjatkan ke hadirat Allah SWT atas karunia-Nya sehingga website resmi SDN 01 Papahan ini dapat terus hadir menjadi jembatan informasi yang efektif antara sekolah, peserta didik, orang tua murid, dan masyarakat luas.',
+            'Kami berkomitmen untuk terus berinovasi dalam memberikan layanan pendidikan terbaik, mencetak generasi unggul yang tidak hanya cerdas secara akademik, namun juga memiliki karakter mulia dan siap menghadapi tantangan masa depan.'
+        ],
+        name: 'Drs. H. Suyanto, M.Pd',
+        role: 'Kepala Sekolah SDN 01 Papahan',
+        photo: 'https://i.pravatar.cc/400?img=32'
+    },
+    profil: {
+        eyebrow: 'Profil Sekolah',
+        title: 'Membangun Fondasi Masa Depan',
+        desc: 'SDN 01 Papahan berdedikasi untuk menciptakan lingkungan yang inklusif, merangsang keingintahuan, dan menanamkan nilai-nilai luhur Pancasila.',
+        visi: 'Terwujudnya peserta didik yang religius, cerdas, terampil, berkarakter kebangsaan, dan berwawasan lingkungan.',
+        misi: [
+            'Menanamkan keimanan dan ketakwaan.',
+            'Melaksanakan PAKEM (Pembelajaran Aktif, Kreatif, Efektif, Menyenangkan).'
+        ],
+        fasilitas: 'Dilengkapi dengan ruang kelas nyaman, perpustakaan digital, lab komputer dasar, dan area olahraga yang memadai.'
+    },
+    programHeader: {
+        eyebrow: 'Program Kurikulum',
+        title: 'Program Unggulan Sekolah',
+        subtitle: 'Dirancang untuk mengembangkan potensi akademik maupun non-akademik siswa secara seimbang.'
+    },
+    program: [
+        { icon: 'book-open', color: 'primary', title: 'Kurikulum Merdeka', desc: 'Pembelajaran intrakurikuler yang beragam di mana konten akan lebih optimal.' },
+        { icon: 'laptop', color: 'indigo', title: 'Literasi Digital', desc: 'Pengenalan teknologi dasar dan etika berinternet sehat sejak usia dini.' },
+        { icon: 'leaf', color: 'emerald', title: 'Sekolah Adiwiyata', desc: 'Program pembentukan karakter peduli dan berbudaya lingkungan hidup di sekolah.' },
+        { icon: 'heart-handshake', color: 'amber', title: 'Bina Karakter', desc: 'Pembiasaan 5S (Senyum, Salam, Sapa, Sopan, Santun) setiap pagi dan ibadah bersama.' }
+    ],
+    guruHeader: {
+        eyebrow: 'Tenaga Pendidik',
+        titlePrefix: 'Guru',
+        titleHighlight: 'Profesional & Dedikatif',
+        subtitle: 'Tenaga pengajar berpengalaman dan berkomitmen dalam mendidik putra-putri Anda.'
+    },
+    guru: [
+        { photo: '', name: 'Drs. H. Suyanto, M.Pd', role: 'Kepala Sekolah', experience: '20 Tahun Pengalaman', education: 'S3 Pendidikan', isKepsek: true },
+        { photo: '', name: 'Siti Aminah, S.Pd', role: 'Wali Kelas VI', experience: '15 Tahun Pengalaman', education: 'S2 Pendidikan Dasar', isKepsek: false },
+        { photo: '', name: 'Budi Santoso, S.Or', role: 'Guru PJOK', experience: '12 Tahun Pengalaman', education: 'S1 Keolahragaan', isKepsek: false },
+        { photo: '', name: 'Rina Wati, S.Pd.I', role: 'Guru PAI', experience: '10 Tahun Pengalaman', education: 'S1 Pendidikan Agama Islam', isKepsek: false }
+    ],
+    prestasiHeader: {
+        eyebrow: 'PRESTASI SISWA',
+        titlePrefix: 'Prestasi Siswa',
+        titleHighlight: 'Capaian',
+        titleLight: 'membanggakan yang telah diraih siswa/i SekolahKu',
+        subtitle: 'Capaian membanggakan yang telah diraih siswa/i SekolahKu'
+    },
+    prestasi: [
+        { photo: '', badge: 'PENCAPAIAN', date: '24 Mei 2026', title: 'Karanganyar Futsal League', studentName: 'Alya Putri' },
+        { photo: '', badge: 'PENCAPAIAN', date: '24 Mei 2026', title: 'Karanganyar Futsal League', studentName: 'Raka Firmansyah' },
+        { photo: '', badge: 'PENCAPAIAN', date: '30 Mar 2026', title: 'Juara II Lomba Cerdas Cermat (LCC)', studentName: 'Sinta Nurhaliza' },
+        { photo: '', badge: 'PENCAPAIAN', date: '22 Mar 2026', title: 'Medali Emas Olimpiade Matematika', studentName: 'Dimas Aditya' }
+    ],
+    ekskulHeader: {
+        title: 'Ekstrakurikuler',
+        subtitle: 'Penyaluran bakat & minat siswa'
+    },
+    ekskul: [
+        { icon: 'tent', color: 'orange', name: 'Pramuka', status: 'Wajib (Kelas 3-6)' },
+        { icon: 'music', color: 'blue', name: 'Seni Tari & Karawitan', status: 'Pilihan' },
+        { icon: 'activity', color: 'red', name: 'Pencak Silat', status: 'Pilihan' },
+        { icon: 'book', color: 'emerald', name: "BTA (Baca Tulis Al-Qur'an)", status: 'Pilihan' }
+    ],
+    beritaHeader: {
+        eyebrow: 'BERITA & ARTIKEL',
+        titlePrefix: 'Berita & Artikel',
+        titleHighlight: 'Informasi terkini',
+        titleLight: 'seputar SekolahKu',
+        subtitle: 'Informasi terkini seputar SekolahKu'
+    },
+    berita: [
+        { id: 'b1', date: '6 September 2026', author: 'Admin', category: 'Kegiatan', title: 'Kegiatan Bakti Sosial Siswa SekolahKu ke Panti Asuhan', excerpt: 'Siswa SekolahKu mengadakan kegiatan bakti sosial ke panti asuhan sebagai bagian dari program pendidikan karakter.', tags: 'kegiatan, bakti-sosial, peduli', content: 'Sebanyak 50 siswa SekolahKu mengadakan kunjungan dan bakti sosial ke Panti Asuhan Harapan Mulia pada Sabtu, 5 September 2026. Kegiatan ini merupakan bagian dari program pendidikan karakter yang rutin dilaksanakan setiap semester.\n\nDalam kegiatan tersebut, siswa menyalurkan donasi berupa sembako, alat tulis, dan pakaian layak pakai. Selain itu, siswa juga berinteraksi dan bermain bersama anak-anak panti asuhan.\n\nKegiatan ini diharapkan dapat menumbuhkan rasa empati dan kepedulian sosial sejak dini pada diri siswa, sekaligus menjadi pengalaman berharga di luar kegiatan belajar mengajar di kelas.' },
+        { id: 'b2', date: '22 Maret 2026', author: 'Admin', category: 'Prestasi', title: 'Siswa SekolahKu Raih Medali Emas Olimpiade Sains Nasional', excerpt: 'Alya Putri, siswa kelas VI A, berhasil meraih medali emas dalam ajang Olimpiade Sains Nasional yang diselenggarakan di Jakarta.', tags: 'prestasi, olimpiade, sains', content: 'Alya Putri, siswa kelas VI A, berhasil meraih medali emas dalam ajang Olimpiade Sains Nasional (OSN) yang diselenggarakan di Jakarta pada 18-20 Maret 2026.\n\nPrestasi ini merupakan hasil dari latihan intensif yang dibimbing langsung oleh guru pembina sejak beberapa bulan sebelumnya. Alya bersaing dengan ratusan peserta dari seluruh Indonesia pada bidang studi Sains.\n\nPihak sekolah menyampaikan rasa bangga dan berharap prestasi ini dapat memotivasi siswa lain untuk terus berprestasi di bidang akademik maupun non-akademik.' },
+        { id: 'b3', date: '12 Agustus 2026', author: 'Admin', category: 'Kegiatan', title: 'Upacara Peringatan Hari Pramuka ke-65', excerpt: 'Siswa-siswi SDN 01 Papahan melaksanakan upacara peringatan Hari Pramuka dengan khidmat di lapangan utama sekolah.', tags: 'kegiatan, pramuka, upacara', content: 'Siswa-siswi SDN 01 Papahan melaksanakan upacara peringatan Hari Pramuka ke-65 dengan khidmat di lapangan utama sekolah pada Selasa, 12 Agustus 2026.\n\nUpacara diikuti oleh seluruh siswa kelas 3 hingga kelas 6 yang tergabung dalam kegiatan ekstrakurikuler Pramuka, didampingi oleh guru pembina dan Kepala Sekolah selaku pembina upacara.\n\nDalam sambutannya, Kepala Sekolah mengajak seluruh siswa untuk meneladani nilai-nilai kepramukaan seperti kedisiplinan, kemandirian, dan jiwa kepemimpinan dalam kehidupan sehari-hari.' },
+        { id: 'b4', date: '5 Agustus 2026', author: 'Admin', category: 'Pengumuman', title: 'Jadwal Pengambilan Buku Paket Semester Ganjil', excerpt: 'Diberitahukan kepada seluruh wali murid kelas 1-6 untuk dapat mengambil buku paket pembelajaran di perpustakaan.', tags: 'pengumuman, buku-paket', content: 'Diberitahukan kepada seluruh wali murid kelas 1-6 bahwa pengambilan buku paket pembelajaran untuk Semester Ganjil Tahun Ajaran 2026/2027 dapat dilakukan mulai tanggal 5-9 Agustus 2026 di perpustakaan sekolah.\n\nWali murid diharapkan membawa kartu identitas siswa saat pengambilan buku. Buku paket wajib dijaga dengan baik karena akan digunakan selama satu semester dan dikembalikan dalam kondisi baik pada akhir semester.\n\nUntuk informasi lebih lanjut, wali murid dapat menghubungi wali kelas masing-masing atau bagian tata usaha sekolah.' }
+    ],
+    beritaComments: {},
+    agendaHeader: {
+        title: 'Agenda Mendatang'
+    },
+    agenda: [
+        { month: 'Agu', day: '17', title: 'Upacara HUT RI ke-81', time: '07:00 - Selesai', location: 'Lapangan Sekolah' },
+        { month: 'Sep', day: '05', title: 'Rapat Komite Wali Murid', time: '09:00 - 11:00', location: 'Aula Sekolah' },
+        { month: 'Okt', day: '12', title: 'Penilaian Tengah Semester', time: 'Sesuai Jadwal', location: 'Ruang Kelas' }
+    ],
+    galeriHeader: {
+        title: 'Galeri Kegiatan'
+    },
+    galeri: [
+        { image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=400&h=400', caption: 'Kegiatan Belajar' },
+        { image: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&q=80&w=400&h=400', caption: 'Perpustakaan' },
+        { image: 'https://images.unsplash.com/photo-1606761568499-6d2451b23c66?auto=format&fit=crop&q=80&w=400&h=400', caption: 'Olahraga' }
+    ],
+    testimoniHeader: {
+        title: 'Kata Wali Murid'
+    },
+    testimoni: [
+        {
+            quote: 'Menyekolahkan anak di SDN 01 Papahan adalah keputusan yang tepat. Selain fasilitasnya yang memadai, guru-gurunya sangat perhatian terhadap perkembangan karakter anak. Anak saya jadi lebih disiplin dan mandiri.',
+            name: 'Bpk. Haryanto',
+            role: 'Wali Murid Kelas IV',
+            photo: 'https://i.pravatar.cc/150?img=47'
+        }
+    ],
+    faq: [
+        { q: 'Kapan pendaftaran siswa baru dibuka?', a: 'Pendaftaran Peserta Didik Baru (PPDB) biasanya dibuka pada bulan Juni setiap tahunnya, mengikuti jadwal resmi dari Dinas Pendidikan Kabupaten Karanganyar.' },
+        { q: 'Apa saja syarat pendaftaran kelas 1?', a: 'Syarat utama adalah usia minimal 6 tahun pada tanggal 1 Juli tahun berjalan, fotokopi Akte Kelahiran, KK, dan KTP Orang Tua.' },
+        { q: 'Apakah ada biaya SPP bulanan?', a: 'Sebagai sekolah negeri, SDN 01 Papahan membebaskan biaya SPP bulanan sesuai dengan program Bantuan Operasional Sekolah (BOS) dari pemerintah.' }
+    ],
+    kontak: {
+        address: 'Jl. Raya Papahan - Tasikmadu, Papahan, Kec. Tasikmadu, Kabupaten Karanganyar, Jawa Tengah 57722',
+        phone: '(0271) 123456',
+        email: 'info@sdn01papahan.sch.id'
+    },
+    footer: {
+        desc: 'Mendidik putra-putri bangsa menjadi generasi yang cerdas, berakhlak mulia, dan siap menghadapi tantangan masa depan.',
+        copyright: '© 2026 SDN 01 Papahan Karanganyar. All rights reserved.',
+        socialFacebook: '#',
+        socialInstagram: '#',
+        socialYoutube: '#'
+    },
+    // Urutan & status tampil halaman di situs publik (menu admin "Atur Urutan Halaman").
+    // "locked" = halaman utama (Beranda), selalu aktif & selalu berada di urutan pertama.
+    pageOrder: [
+        { key: 'beranda',        label: 'Beranda',                    icon: 'flag',            locked: true,  active: true },
+        { key: 'sambutan',       label: 'Sambutan Kepala Sekolah',     icon: 'pen-line',        locked: false, active: true },
+        { key: 'profil',         label: 'Profil Sekolah',              icon: 'building',        locked: false, active: true },
+        { key: 'program',        label: 'Program Unggulan',            icon: 'graduation-cap',  locked: false, active: true },
+        { key: 'pengajar',       label: 'Tenaga Pendidik',             icon: 'users',           locked: false, active: true },
+        { key: 'prestasi',       label: 'Prestasi Siswa',              icon: 'trophy',          locked: false, active: true },
+        { key: 'ekskul',         label: 'Ekstrakurikuler',             icon: 'tent',            locked: false, active: true },
+        { key: 'berita',         label: 'Berita & Agenda',             icon: 'newspaper',       locked: false, active: true },
+        { key: 'galeri',         label: 'Galeri Kegiatan',             icon: 'image',           locked: false, active: true },
+        { key: 'testimoni',      label: 'Testimoni Wali Murid',        icon: 'quote',           locked: false, active: true },
+        { key: 'faq',            label: 'FAQ & Kontak',                icon: 'help-circle',     locked: false, active: true }
+        // Halaman kustom (dari menu "Tambah Halaman") disisipkan otomatis ke sini
+        // secara dinamis oleh syncCustomPagesIntoOrder() setiap kali ada perubahan.
+    ],
+    customSections: [
+        {
+            id: 'cs_demo_fasilitas',
+            type: 'cards',
+            eyebrow: 'Sarana & Prasarana',
+            title: 'Fasilitas Sekolah',
+            subtitle: 'Lingkungan belajar yang nyaman, lengkap, dan mendukung tumbuh kembang siswa.',
+            bgStyle: 'gray',
+            active: true,
+            menuLabel: 'Fasilitas',
+            columns: 3,
+            items: [
+                { icon: 'book-open', title: 'Perpustakaan', desc: 'Koleksi buku pelajaran dan bacaan umum untuk menumbuhkan minat baca siswa.' },
+                { icon: 'flask-conical', title: 'Laboratorium IPA', desc: 'Ruang praktik sains dengan peralatan dasar untuk eksperimen siswa.' },
+                { icon: 'dribbble', title: 'Lapangan Olahraga', desc: 'Area luas untuk kegiatan olahraga, upacara, dan pramuka.' }
+            ],
+            image: '', imagePosition: 'right', ctaLabel: '', ctaLink: ''
+        }
+    ]
+};
+
+function loadDB() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        // Tetap jalankan migrateDB() walau database masih kosong (kunjungan pertama),
+        // supaya halaman kustom bawaan (mis. "Fasilitas Sekolah") ikut disinkronkan
+        // ke pageOrder. Tanpa ini, applyPageOrder() akan melewati halaman tersebut
+        // dan secara tidak sengaja membuatnya "terdorong" ke posisi paling atas.
+        if (!raw) return migrateDB(JSON.parse(JSON.stringify(DEFAULT_DB)));
+        const parsed = JSON.parse(raw);
+        // merge shallow supaya field baru dari DEFAULT_DB tetap ada jika versi lama
+        const merged = Object.assign({}, DEFAULT_DB, parsed);
+        return migrateDB(merged);
+    } catch (e) {
+        console.error('Gagal memuat data CMS, menggunakan default.', e);
+        return migrateDB(JSON.parse(JSON.stringify(DEFAULT_DB)));
+    }
+}
+
+// Menyesuaikan data lama (format sebelumnya) ke skema terbaru agar tidak error/kosong.
+function migrateDB(db) {
+    // Testimoni: versi lama berupa objek tunggal -> larik, dan pastikan selalu larik.
+    if (db.testimoni && !Array.isArray(db.testimoni)) {
+        db.testimoni = [db.testimoni];
+    }
+    if (!Array.isArray(db.testimoni) || db.testimoni.length === 0) {
+        db.testimoni = JSON.parse(JSON.stringify(DEFAULT_DB.testimoni));
+    }
+    if (!db.testimoniHeader) {
+        db.testimoniHeader = JSON.parse(JSON.stringify(DEFAULT_DB.testimoniHeader));
+    }
+
+    // Prestasi: versi lama pakai field name/kelas/achievement/level/year/icon -> foto/badge/date/title/studentName.
+    if (Array.isArray(db.prestasi)) {
+        db.prestasi = db.prestasi.map(p => {
+            if (!p) return p;
+            const isOldSchema = p.title === undefined && (p.achievement !== undefined || p.name !== undefined);
+            if (!isOldSchema) return p;
+            return {
+                photo: p.photo || '',
+                badge: p.badge || 'PENCAPAIAN',
+                date: p.date || (p.year ? String(p.year) : ''),
+                title: p.achievement || '',
+                studentName: p.name || ''
+            };
+        });
+    }
+
+    // Hero: dukung banyak gambar (carousel) — migrasi dari field lama `image` (tunggal).
+    if (!db.hero) db.hero = JSON.parse(JSON.stringify(DEFAULT_DB.hero));
+    if (!Array.isArray(db.hero.images) || db.hero.images.length === 0) {
+        db.hero.images = db.hero.image ? [db.hero.image] : JSON.parse(JSON.stringify(DEFAULT_DB.hero.images));
+    }
+    delete db.hero.image;
+
+    // Meta: pastikan field logo (foto) tersedia untuk versi lama.
+    if (!db.meta) db.meta = JSON.parse(JSON.stringify(DEFAULT_DB.meta));
+    if (db.meta.logoImage === undefined) db.meta.logoImage = '';
+
+    // Berita: pastikan setiap artikel punya id unik (untuk komentar & tautan detail) dan field baru.
+    if (Array.isArray(db.berita)) {
+        db.berita.forEach((b, i) => {
+            if (!b.id) b.id = 'b_legacy_' + i + '_' + Date.now();
+            if (b.content === undefined) b.content = b.excerpt || '';
+            if (b.tags === undefined) b.tags = '';
+        });
+    }
+    if (!db.beritaComments || typeof db.beritaComments !== 'object') {
+        db.beritaComments = {};
+    }
+
+    // Halaman/Section kustom tambahan dari admin — pastikan selalu larik yang valid.
+    if (!Array.isArray(db.customSections)) {
+        db.customSections = [];
+    }
+    db.customSections.forEach(s => {
+        if (!s.id) s.id = 'cs_' + Math.random().toString(36).slice(2, 10);
+        if (!Array.isArray(s.items)) s.items = [];
+        if (typeof s.active !== 'boolean') s.active = true;
+    });
+
+    // Urutan halaman — pastikan selalu berisi seluruh halaman baku yang dikenal,
+    // buang key yang sudah tidak dikenal, dan pastikan halaman terkunci (Beranda) ada di posisi pertama.
+    if (!Array.isArray(db.pageOrder)) db.pageOrder = [];
+    const defaultPageOrder = DEFAULT_DB.pageOrder;
+    const validKeys = defaultPageOrder.map(p => p.key);
+    // Migrasi lama: sebelumnya "Prestasi" & "Ekstrakurikuler" adalah SATU entri gabungan
+    // berkunci "prestasi". Sekarang keduanya section terpisah — pecah entri lama tersebut
+    // menjadi dua baris agar bisa diatur urutan & aktif/nonaktifnya masing-masing.
+    const prestasiIdx = db.pageOrder.findIndex(p => p && p.key === 'prestasi');
+    if (prestasiIdx !== -1) {
+        if (db.pageOrder[prestasiIdx].label === 'Prestasi & Ekstrakurikuler') {
+            db.pageOrder[prestasiIdx].label = 'Prestasi Siswa';
+        }
+        if (!db.pageOrder.find(p => p && p.key === 'ekskul')) {
+            db.pageOrder.splice(prestasiIdx + 1, 0, {
+                key: 'ekskul', label: 'Ekstrakurikuler', icon: 'tent',
+                locked: false, active: db.pageOrder[prestasiIdx].active !== false
+            });
+        }
+    }
+    // Pertahankan entri halaman kustom (key berawalan "custom:") beserta posisinya —
+    // sebelumnya baris ini membuang semua entri kustom sehingga urutannya reset ke
+    // bawah setiap kali halaman dimuat ulang. syncCustomPagesIntoOrder() di bawah
+    // tetap yang menangani penambahan/penghapusan entri kustom sesuai data terbaru.
+    db.pageOrder = db.pageOrder.filter(p => p && (validKeys.includes(p.key) || String(p.key).startsWith(CUSTOM_PAGE_KEY_PREFIX)));
+    defaultPageOrder.forEach(def => {
+        if (!db.pageOrder.find(p => p.key === def.key)) {
+            db.pageOrder.push(Object.assign({}, def));
+        }
+    });
+    db.pageOrder.forEach(p => {
+        const def = defaultPageOrder.find(d => d.key === p.key) || {};
+        if (!p.label) p.label = def.label;
+        if (!p.icon) p.icon = def.icon;
+        p.locked = !!def.locked;
+        if (typeof p.active !== 'boolean') p.active = true;
+        if (p.locked) p.active = true;
+    });
+    const lockedIdx = db.pageOrder.findIndex(p => p.locked);
+    if (lockedIdx > 0) {
+        const [lockedItem] = db.pageOrder.splice(lockedIdx, 1);
+        db.pageOrder.unshift(lockedItem);
+    }
+    syncCustomPagesIntoOrder(db);
+
+    return db;
+}
+
+// Menyisipkan/menyingkronkan setiap halaman kustom (dari menu "Tambah Halaman") ke dalam
+// DB.pageOrder sebagai baris tersendiri, supaya bisa diatur urutan & aktif/nonaktifnya
+// bersama halaman baku lainnya di menu "Atur Urutan Halaman". Halaman kustom yang baru
+// ditambahkan otomatis muncul di urutan paling bawah; halaman yang dihapus otomatis hilang.
+function syncCustomPagesIntoOrder(db) {
+    if (!Array.isArray(db.pageOrder)) db.pageOrder = [];
+    const list = Array.isArray(db.customSections) ? db.customSections : [];
+    const customKeys = list.filter(s => s && s.id).map(s => CUSTOM_PAGE_KEY_PREFIX + s.id);
+
+    // buang entri halaman kustom yang datanya sudah tidak ada (dihapus admin)
+    db.pageOrder = db.pageOrder.filter(p => !p.key.startsWith(CUSTOM_PAGE_KEY_PREFIX) || customKeys.includes(p.key));
+
+    // tambahkan entri baru & sinkronkan label/status aktif dari data halaman kustom
+    list.forEach(s => {
+        if (!s || !s.id) return;
+        const key = CUSTOM_PAGE_KEY_PREFIX + s.id;
+        const label = (s.title && s.title.trim()) ? s.title.trim() : 'Halaman Kustom';
+        let entry = db.pageOrder.find(p => p.key === key);
+        if (!entry) {
+            db.pageOrder.push({
+                key, label, icon: 'layout-template', locked: false,
+                active: (typeof s.active === 'boolean' ? s.active : true), custom: true
+            });
+        } else {
+            entry.label = label;
+            entry.icon = entry.icon || 'layout-template';
+            entry.custom = true;
+            if (typeof s.active === 'boolean') entry.active = s.active;
+        }
+    });
+}
+
+let DB = loadDB();
+
+/* =========================================================================
+   SINKRONISASI (ADMIN) — setiap "Simpan" langsung mengirim data ke server
+   SAAT ITU JUGA (tanpa jeda/antrian, tanpa badge status), mengikuti pola
+   SIEKSTRASAPA yang sudah terbukti dipakai & di-hosting. Otorisasi memakai
+   SESI LOGIN (cookie HttpOnly); kalau sesi tidak/sudah tidak valid, server
+   menolak dengan 401 dan admin dilempar ke halaman login.
+========================================================================= */
+async function pullFromCloud() {
+    try {
+        const res = await fetch('/api/data', { method: 'GET', credentials: 'same-origin' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const remote = await res.json();
+        if (remote && typeof remote === 'object' && Object.keys(remote).length > 0) {
+            DB = migrateDB(Object.assign({}, DEFAULT_DB, remote));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+            showAdminPanel(typeof currentPanel !== 'undefined' ? currentPanel : 'overview');
+        }
+    } catch (err) {
+        console.error('Gagal mengambil data dari server, memakai data lokal.', err);
+    }
+}
+
+// Fire-and-forget seperti api.push() di SIEKSTRASAPA — UI tidak menunggu,
+// tapi tetap dikonfirmasi lewat toast kalau ternyata gagal (mis. sesi
+// berakhir atau koneksi putus), supaya admin tidak salah kira sudah tersimpan.
+function pushToCloudNow() {
+    fetch('/api/data', {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DB)
+    }).then(async (res) => {
+        if (res.status === 401) {
+            showToast('Sesi Anda berakhir. Mengalihkan ke halaman masuk...', 'error');
+            setTimeout(() => window.location.replace('/login.html'), 1200);
+            return;
+        }
+        if (!res.ok) {
+            const errBody = await res.json().catch(() => ({}));
+            throw new Error(errBody.error || ('HTTP ' + res.status));
+        }
+    }).catch(err => {
+        console.error('Gagal menyimpan ke server:', err);
+        showToast('Gagal menyimpan ke server (data tetap ada di perangkat ini). ' + err.message, 'error');
+    });
+}
+
+function saveDB() {
+    syncCustomPagesIntoOrder(DB);
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+    } catch (err) {
+        // Cache lokal browser (localStorage) penuh. Ini TIDAK menghalangi
+        // penyimpanan sesungguhnya — server (D1) tetap jadi sumber data utama.
+        console.error(err);
+        showToast('Cache lokal browser ini penuh, tapi perubahan tetap disimpan ke server.', 'error');
+    }
+    pushToCloudNow();
+}
+
+/* =========================================================================
+   UTIL
+========================================================================= */
+function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+}
+
+function reInitIcons() {
+    if (window.lucide) lucide.createIcons();
+}
+
+function showToast(text, type) {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    document.getElementById('toast-text').textContent = text;
+    icon.setAttribute('data-lucide', type === 'error' ? 'x-circle' : 'check-circle');
+    icon.className = type === 'error' ? 'w-5 h-5 text-red-400' : 'w-5 h-5 text-emerald-400';
+    reInitIcons();
+    toast.classList.remove('translate-y-20', 'opacity-0');
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+    }, 2800);
+}
+
+/* =========================================================================
+
+/* =========================================================================
+   RENDER — Halaman/Section Kustom (dibuat bebas oleh admin, tampil di beranda)
+========================================================================= */
+const CUSTOM_SECTION_TYPES = {
+    text:     { label: 'Teks & Gambar',      icon: 'image',        desc: 'Teks penjelasan berdampingan dengan satu gambar. Cocok untuk sejarah singkat, sarana unggulan, atau info khusus.' },
+    cards:    { label: 'Kartu / Grid',       icon: 'layout-grid',  desc: 'Beberapa kartu berisi ikon, judul, dan deskripsi singkat. Cocok untuk fasilitas, keunggulan, atau layanan.' },
+    services: { label: 'Layanan Digital (Ikon + Daftar + Link)', icon: 'globe', desc: 'Kartu layanan/aplikasi dengan ikon, warna, badge, daftar poin, dan tombol "klik di sini" menuju website. Cocok untuk SIEKSTRASAPA, SIPEKASAPA, SIADMINSAPA, atau sistem digital sekolah lainnya.' },
+    gallery:  { label: 'Galeri Foto',        icon: 'images',       desc: 'Kumpulan foto dalam bentuk grid, lengkap dengan keterangan singkat di tiap foto.' },
+    cta:      { label: 'Banner Ajakan (CTA)',icon: 'megaphone',    desc: 'Banner besar dengan judul, teks singkat, dan tombol tautan. Cocok untuk ajakan pendaftaran atau pengumuman penting.' }
+};
+
+const CS_SERVICE_COLORS = {
+    emerald: { name: 'Hijau',       border: 'border-emerald-200', iconBg: 'bg-emerald-50', iconText: 'text-emerald-600', badgeBg: 'bg-emerald-600', titleText: 'text-emerald-700', check: 'text-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-700' },
+    orange:  { name: 'Oranye',      border: 'border-orange-200',  iconBg: 'bg-orange-50',  iconText: 'text-orange-600',  badgeBg: 'bg-orange-500', titleText: 'text-orange-600',  check: 'text-orange-500', btn: 'bg-orange-500 hover:bg-orange-600' },
+    blue:    { name: 'Biru',        border: 'border-blue-200',    iconBg: 'bg-blue-50',    iconText: 'text-blue-600',    badgeBg: 'bg-blue-600',   titleText: 'text-blue-700',    check: 'text-blue-500',   btn: 'bg-blue-600 hover:bg-blue-700' },
+    indigo:  { name: 'Indigo',      border: 'border-indigo-200',  iconBg: 'bg-indigo-50',  iconText: 'text-indigo-600',  badgeBg: 'bg-indigo-600', titleText: 'text-indigo-700',  check: 'text-indigo-500', btn: 'bg-indigo-600 hover:bg-indigo-700' },
+    purple:  { name: 'Ungu',        border: 'border-purple-200',  iconBg: 'bg-purple-50',  iconText: 'text-purple-600',  badgeBg: 'bg-purple-600', titleText: 'text-purple-700',  check: 'text-purple-500', btn: 'bg-purple-600 hover:bg-purple-700' },
+    rose:    { name: 'Merah Muda',  border: 'border-rose-200',    iconBg: 'bg-rose-50',    iconText: 'text-rose-600',    badgeBg: 'bg-rose-600',   titleText: 'text-rose-700',    check: 'text-rose-500',   btn: 'bg-rose-600 hover:bg-rose-700' }
+};
+function csServiceColor(key) { return CS_SERVICE_COLORS[key] || CS_SERVICE_COLORS.blue; }
+
+function csBgClass(bg) { return bg === 'dark' ? 'bg-slate-900 text-white' : (bg === 'gray' ? 'bg-slate-50' : 'bg-white'); }
+function csMutedClass(bg) { return bg === 'dark' ? 'text-slate-300' : 'text-slateMuted'; }
+function csEyebrowClass(bg) { return bg === 'dark' ? 'bg-white/10 border-white/10 text-white' : 'bg-blue-50 border-blue-100 text-primary'; }
+function csCardClass(bg) { return bg === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white border border-borderLight shadow-soft'; }
+
+function buildCustomSectionMarkup(s) {
+    const bgSection = csBgClass(s.bgStyle);
+    const muted = csMutedClass(s.bgStyle);
+    const items = Array.isArray(s.items) ? s.items : [];
+    const eyebrowHtml = (s.eyebrow && s.eyebrow.trim())
+        ? `<span class="inline-flex items-center px-3 py-1.5 rounded-full border ${csEyebrowClass(s.bgStyle)} text-xs font-semibold mb-4">${escapeHtml(s.eyebrow)}</span>`
+        : '';
+
+    if (s.type === 'text') {
+        const imgCol = `<div>${s.image ? `<img src="${escapeHtml(s.image)}" alt="${escapeHtml(s.title)}" class="rounded-2xl object-cover w-full h-72 lg:h-[420px] shadow-soft">` : ''}</div>`;
+        const textCol = `
+            <div>
+                ${eyebrowHtml}
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">${escapeHtml(s.title)}</h2>
+                ${s.subtitle ? `<p class="${muted} leading-relaxed whitespace-pre-line mb-6">${escapeHtml(s.subtitle)}</p>` : ''}
+                ${(s.ctaLabel && s.ctaLink) ? `<a href="${escapeHtml(s.ctaLink)}" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition">${escapeHtml(s.ctaLabel)} <i data-lucide="arrow-right" class="w-4 h-4"></i></a>` : ''}
+            </div>`;
+        return `
+            <section id="cs-${s.id}" class="py-20 ${bgSection}">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    ${s.imagePosition === 'left' ? imgCol + textCol : textCol + imgCol}
+                </div>
+            </section>`;
+    }
+
+    if (s.type === 'cards') {
+        const cols = s.columns === 2 ? 'sm:grid-cols-2' : (s.columns === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3');
+        return `
+            <section id="cs-${s.id}" class="py-20 ${bgSection}">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-2xl mx-auto text-center mb-12">
+                        ${eyebrowHtml}
+                        <h2 class="text-3xl sm:text-4xl font-bold mb-4">${escapeHtml(s.title)}</h2>
+                        ${s.subtitle ? `<p class="${muted}">${escapeHtml(s.subtitle)}</p>` : ''}
+                    </div>
+                    <div class="grid grid-cols-1 ${cols} gap-6">
+                        ${items.map(it => `
+                            <div class="${csCardClass(s.bgStyle)} rounded-2xl p-6">
+                                ${it.icon ? `<div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4"><i data-lucide="${escapeHtml(it.icon)}" class="w-6 h-6"></i></div>` : ''}
+                                <h3 class="font-bold mb-2">${escapeHtml(it.title || '')}</h3>
+                                <p class="text-sm ${muted}">${escapeHtml(it.desc || '')}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </section>`;
+    }
+
+    if (s.type === 'services') {
+        const cols = s.columns === 2 ? 'sm:grid-cols-2' : (s.columns === 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3');
+        return `
+            <section id="cs-${s.id}" class="py-20 ${bgSection}">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-2xl mx-auto text-center mb-12">
+                        ${eyebrowHtml}
+                        <h2 class="text-3xl sm:text-4xl font-bold mb-4">${escapeHtml(s.title)}</h2>
+                        ${s.subtitle ? `<p class="${muted}">${escapeHtml(s.subtitle)}</p>` : ''}
+                    </div>
+                    <div class="grid grid-cols-1 ${cols} gap-6">
+                        ${items.map(it => {
+                            const c = csServiceColor(it.color);
+                            const features = Array.isArray(it.features) ? it.features : [];
+                            const link = (it.link || '').trim();
+                            const linkText = (it.linkText && it.linkText.trim()) ? it.linkText : link.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+                            return `
+                            <div class="rounded-2xl border-2 ${c.border} ${s.bgStyle === 'dark' ? 'bg-white/5' : 'bg-white'} p-6 flex flex-col shadow-soft">
+                                <div class="w-20 h-20 rounded-full ${c.iconBg} flex items-center justify-center mb-4 mx-auto overflow-hidden">
+                                    ${it.image ? `<img src="${escapeHtml(it.image)}" alt="${escapeHtml(it.title || '')}" class="w-full h-full object-cover">` : `<i data-lucide="globe" class="w-7 h-7 ${c.iconText}"></i>`}
+                                </div>
+                                <h3 class="text-xl font-extrabold text-center ${c.titleText} mb-2">${escapeHtml(it.title || '')}</h3>
+                                ${it.badge ? `<div class="mx-auto mb-4 text-center"><span class="inline-block px-3 py-1.5 rounded-full ${c.badgeBg} text-white text-xs font-semibold">${escapeHtml(it.badge)}</span></div>` : ''}
+                                ${it.listHeading ? `<p class="text-sm font-bold ${c.titleText} text-center mb-3">${escapeHtml(it.listHeading)}</p>` : ''}
+                                <ul class="space-y-2 mb-6 flex-1">
+                                    ${features.map(f => `<li class="flex items-start gap-2 text-sm ${muted}"><i data-lucide="check-circle-2" class="w-4 h-4 ${c.check} shrink-0 mt-0.5"></i><span>${escapeHtml(f)}</span></li>`).join('')}
+                                </ul>
+                                ${link ? `
+                                <div class="mt-auto pt-4 border-t ${s.bgStyle === 'dark' ? 'border-white/10' : 'border-slate-100'}">
+                                    <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5 text-xs font-semibold ${c.iconText} hover:underline mb-3">
+                                        <i data-lucide="globe" class="w-3.5 h-3.5"></i> ${escapeHtml(linkText)}
+                                    </a>
+                                    <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl ${c.btn} text-white text-sm font-semibold transition">
+                                        Silakan klik di sini untuk menuju web <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                    </a>
+                                </div>` : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </section>`;
+    }
+
+    if (s.type === 'gallery') {
+        return `
+            <section id="cs-${s.id}" class="py-20 ${bgSection}">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-2xl mx-auto text-center mb-12">
+                        ${eyebrowHtml}
+                        <h2 class="text-3xl sm:text-4xl font-bold mb-4">${escapeHtml(s.title)}</h2>
+                        ${s.subtitle ? `<p class="${muted}">${escapeHtml(s.subtitle)}</p>` : ''}
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        ${items.map(it => `
+                            <div class="relative rounded-2xl overflow-hidden aspect-square group">
+                                <img src="${escapeHtml(it.image || '')}" alt="${escapeHtml(it.caption || '')}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                ${it.caption ? `<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3"><p class="text-white text-xs font-medium">${escapeHtml(it.caption)}</p></div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </section>`;
+    }
+
+    if (s.type === 'cta') {
+        return `
+            <section id="cs-${s.id}" class="py-16 ${bgSection}">
+                <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="rounded-3xl bg-gradient-to-br from-primary to-blue-500 text-white p-10 sm:p-14 text-center shadow-glass">
+                        ${s.eyebrow ? `<span class="inline-flex items-center px-3 py-1.5 rounded-full border border-white/20 bg-white/10 text-white text-xs font-semibold mb-4">${escapeHtml(s.eyebrow)}</span>` : ''}
+                        <h2 class="text-3xl sm:text-4xl font-bold mb-4">${escapeHtml(s.title)}</h2>
+                        ${s.subtitle ? `<p class="text-blue-50 max-w-xl mx-auto mb-8">${escapeHtml(s.subtitle)}</p>` : ''}
+                        ${(s.ctaLabel && s.ctaLink) ? `<a href="${escapeHtml(s.ctaLink)}" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white text-primary text-sm font-bold hover:bg-blue-50 transition">${escapeHtml(s.ctaLabel)} <i data-lucide="arrow-right" class="w-4 h-4"></i></a>` : ''}
+                    </div>
+                </div>
+            </section>`;
+    }
+
+    return '';
+}
+
+function renderCustomSections() {
+    const publicView = document.getElementById('public-view');
+    if (!publicView) return;
+    const footer = publicView.querySelector('footer');
+
+    // Hapus seluruh section kustom yang pernah dirender sebelumnya, lalu bangun ulang
+    // sebagai elemen sejajar (sibling) dengan section baku lainnya — supaya applyPageOrder()
+    // bisa memindahkan & menampilkan/menyembunyikan setiap halaman kustom secara individual.
+    publicView.querySelectorAll(':scope > [id^="cs-"]').forEach(el => el.remove());
+
+    const sections = DB.customSections || [];
+    sections.forEach(s => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = buildCustomSectionMarkup(s).trim();
+        const sectionEl = wrapper.firstElementChild;
+        if (sectionEl) publicView.insertBefore(sectionEl, footer || null);
+    });
+
+    const withMenu = sections.filter(s => s.menuLabel && s.menuLabel.trim());
+    const navLinks = document.getElementById('nav-custom-links');
+    if (navLinks) navLinks.innerHTML = withMenu.map(s => `<a href="#cs-${s.id}" data-nav-key="${CUSTOM_PAGE_KEY_PREFIX}${s.id}" class="block px-4 py-2 text-sm text-slateMuted hover:bg-slate-50 hover:text-primary">${escapeHtml(s.menuLabel)}</a>`).join('');
+    const mobileNavLinks = document.getElementById('mobile-nav-custom-links');
+    if (mobileNavLinks) mobileNavLinks.innerHTML = withMenu.map(s => `<a href="#cs-${s.id}" data-nav-key="${CUSTOM_PAGE_KEY_PREFIX}${s.id}" class="block px-3 py-3 rounded-lg text-base font-medium text-slateMuted hover:text-slateDark hover:bg-slate-50">${escapeHtml(s.menuLabel)}</a>`).join('');
+}
+
+function renderPublicSite() {
+    renderMeta();
+    renderHero();
+    renderSambutan();
+    renderProfil();
+    renderProgram();
+    renderGuru();
+    renderPrestasiEkskul();
+    renderBeritaAgenda();
+    renderGaleriTestimoni();
+    renderFaq();
+    renderKontakFooter();
+    renderCustomSections();
+    applyPageOrder();
+    reInitIcons();
+}
+
+/* =========================================================================
+
+/* =========================================================================
+   URUTAN & STATUS TAMPIL HALAMAN (dipakai oleh menu admin "Atur Urutan Halaman")
+========================================================================= */
+// Memetakan key halaman ke id elemen section di DOM halaman publik.
+const PAGE_SECTION_ELEMENT_ID = {
+    beranda: 'beranda',
+    sambutan: 'sambutan',
+    profil: 'profil',
+    program: 'program',
+    pengajar: 'pengajar',
+    prestasi: 'prestasi',
+    ekskul: 'ekskul',
+    berita: 'berita',
+    galeri: 'galeri',
+    testimoni: 'testimoni',
+    faq: 'faq'
+};
+
+// Menyusun ulang urutan section di halaman publik sesuai DB.pageOrder,
+// dan menyembunyikan section + tautan menu navigasi untuk halaman yang dinonaktifkan.
+function applyPageOrder() {
+    const publicView = document.getElementById('public-view');
+    if (!publicView) return;
+    const footer = publicView.querySelector('footer');
+    if (!footer) return;
+    const order = (DB.pageOrder && DB.pageOrder.length) ? DB.pageOrder : DEFAULT_DB.pageOrder;
+
+    order.forEach(p => {
+        const elId = p.key.startsWith(CUSTOM_PAGE_KEY_PREFIX)
+            ? 'cs-' + p.key.slice(CUSTOM_PAGE_KEY_PREFIX.length)
+            : PAGE_SECTION_ELEMENT_ID[p.key];
+        const el = elId && document.getElementById(elId);
+        if (!el) return;
+        publicView.insertBefore(el, footer);
+        el.style.display = p.active ? '' : 'none';
+    });
+
+    document.querySelectorAll('[data-nav-key]').forEach(link => {
+        const key = link.getAttribute('data-nav-key');
+        const entry = order.find(p => p.key === key);
+        const active = entry ? entry.active : true;
+        link.classList.toggle('hidden-important', !active);
+    });
+}
+
+/* =========================================================================
+
+/* =========================================================================
+   LINK GOOGLE DRIVE — ubah link share Google Drive jadi link gambar langsung
+========================================================================= */
+function driveDirectUrl(url) {
+    if (!url) return url;
+    const raw = url.trim();
+    const patterns = [
+        /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})/,
+        /drive\.google\.com\/thumbnail\?[^#]*[?&]id=([a-zA-Z0-9_-]{10,})/,
+        /drive\.google\.com\/uc\?[^#]*[?&]id=([a-zA-Z0-9_-]{10,})/,
+        /drive\.google\.com\/open\?[^#]*[?&]id=([a-zA-Z0-9_-]{10,})/,
+        /docs\.google\.com\/[a-z]+\/d\/([a-zA-Z0-9_-]{10,})/
+    ];
+    for (const re of patterns) {
+        const m = raw.match(re);
+        if (m && m[1]) {
+            return `https://lh3.googleusercontent.com/d/${m[1]}`;
+        }
+    }
+    return raw;
+}
+
+// Dipanggil dari oninput kolom "URL gambar": otomatis mengonversi link share
+// Google Drive menjadi link gambar langsung sebelum dipakai sebagai src/disimpan.
+function normalizeImageUrlInput(el) {
+    const before = el.value;
+    const after = driveDirectUrl(before);
+    if (after !== before) {
+        el.value = after;
+        if (typeof showToast === 'function') {
+            showToast('Link Google Drive diubah otomatis jadi link gambar langsung.');
+        }
+    }
+    return el.value;
+}
+
+/* =========================================================================
+   UPLOAD FOTO — baca file dari perangkat, kompres, simpan sebagai data URL.
+   Pola ini mengikuti SIEKSTRASAPA (sudah terbukti dipakai & di-hosting):
+   coba kualitas terbaik dulu, kalau hasilnya masih kegedean turunkan
+   kualitas bertahap (0.85 -> 0.6 -> 0.4), dan kalau tetap kegedean setelah
+   3 percobaan, TOLAK dengan pesan jelas — bukan dipaksa simpan begitu saja.
+   Ini mencegah 1 foto "berat" menghabiskan jatah 20MB per simpan di server.
+========================================================================= */
+
+// Preset ukuran per konteks — samakan filosofinya dengan SIEKSTRASAPA:
+// logo kecil & ketat, foto wajah (guru/testimoni/kepsek) sedang, foto
+// banner/konten (hero, galeri, prestasi, section kustom) lebih longgar.
+const IMAGE_UPLOAD_PRESETS = {
+    logo:   { maxWidth: 256,  quality: 0.85, sizeLimit: 45000  },
+    face:   { maxWidth: 400,  quality: 0.85, sizeLimit: 90000  },
+    banner: { maxWidth: 1000, quality: 0.85, sizeLimit: 300000 }
+};
+
+function resizeImageFile(file, maxWidth, quality, sizeLimit) {
+    maxWidth = maxWidth || 900;
+    quality = quality || 0.82;
+    sizeLimit = sizeLimit || 0; // 0 = tidak ada batas keras (dipertahankan untuk kompatibilitas lama)
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = Math.round(height * (maxWidth / width));
+                    width = maxWidth;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Coba beberapa tingkat kualitas sampai ukurannya aman (pola SIEKSTRASAPA).
+                let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                if (sizeLimit && dataUrl.length > sizeLimit) dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                if (sizeLimit && dataUrl.length > sizeLimit) dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+
+                if (sizeLimit && dataUrl.length > sizeLimit) {
+                    reject(new Error('TOO_LARGE'));
+                    return;
+                }
+                resolve(dataUrl);
+            };
+            img.onerror = () => reject(new Error('Gagal membaca gambar.'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca file.'));
+        reader.readAsDataURL(file);
+    });
+}
+
+// Pesan error seragam untuk semua titik upload — bedakan "masih terlalu besar
+// setelah dikompres habis-habisan" (TOO_LARGE) dari error teknis lainnya.
+function handleImageUploadError(err) {
+    if (err && err.message === 'TOO_LARGE') {
+        showToast('Foto masih terlalu besar, coba pakai foto lain yang lebih sederhana.', 'error');
+    } else {
+        console.error(err);
+        showToast('Gagal memproses foto yang diunggah.', 'error');
+    }
+}
+
+async function handleImageFileSelect(fileInputEl, targetInputId, previewImgId, preset) {
+    const file = fileInputEl.files && fileInputEl.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('File yang dipilih bukan gambar.', 'error');
+        fileInputEl.value = '';
+        return;
+    }
+    const p = IMAGE_UPLOAD_PRESETS[preset] || IMAGE_UPLOAD_PRESETS.banner;
+    try {
+        const dataUrl = await resizeImageFile(file, p.maxWidth, p.quality, p.sizeLimit);
+        // Upload & link URL saling menggantikan (satu sumber foto yang jelas) —
+        // begitu upload berhasil, field ini otomatis jadi data URL hasil kompresi.
+        const targetInput = document.getElementById(targetInputId);
+        targetInput.value = dataUrl;
+        const preview = document.getElementById(previewImgId);
+        if (preview) preview.src = dataUrl;
+        showToast('Foto berhasil diunggah — klik "Simpan" untuk menerapkannya.');
+    } catch (err) {
+        handleImageUploadError(err);
+    } finally {
+        fileInputEl.value = '';
+    }
+}
+
+/* =========================================================================
+
+/* =========================================================================
+   AUTH — Verifikasi sesi admin (server-side, cookie HttpOnly)
+   TIDAK ADA perbandingan username/password di JavaScript ini. Halaman ini
+   hanya bisa menampilkan data sungguhan setelah /api/session menyatakan
+   sesi valid; menyalin kode ini tidak memberi akses apa pun tanpa cookie
+   sesi yang sah dari server.
+========================================================================= */
+let currentAdminUsername = '';
+
+async function verifySessionOrRedirect() {
+    try {
+        const res = await fetch('/api/session', { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('unauthorized');
+        const data = await res.json();
+        currentAdminUsername = data.username || 'admin';
+        return true;
+    } catch (e) {
+        window.location.replace('/login.html');
+        return false;
+    }
+}
+
+async function handleLogout() {
+    try {
+        await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch (e) { /* tetap arahkan keluar walau request gagal */ }
+    window.location.replace('/login.html');
+}
+
+function enterAdminMode() {
+    document.getElementById('admin-view').classList.remove('hidden-important');
+    document.getElementById('admin-username-label').textContent = currentAdminUsername;
+    document.getElementById('admin-avatar').textContent = currentAdminUsername.charAt(0).toUpperCase();
+    buildAdminNav();
+    showAdminPanel('overview');
+}
+
+/* =========================================================================
+   ADMIN — Navigasi Sidebar
+========================================================================= */
+const ADMIN_MENU = [
+    { id: 'overview',  label: 'Dashboard',              icon: 'layout-dashboard' },
+    { id: 'hero',      label: 'Hero / Beranda',         icon: 'flag' },
+    { id: 'sambutan',  label: 'Sambutan Kepsek',        icon: 'pen-line' },
+    { id: 'profil',    label: 'Profil Sekolah',         icon: 'building' },
+    { id: 'program',   label: 'Program Unggulan',       icon: 'graduation-cap' },
+    { id: 'guru',      label: 'Tenaga Pendidik',        icon: 'users' },
+    { id: 'prestasi',  label: 'Prestasi',               icon: 'trophy' },
+    { id: 'ekskul',    label: 'Ekstrakurikuler',        icon: 'tent' },
+    { id: 'berita',    label: 'Berita',                 icon: 'newspaper' },
+    { id: 'agenda',    label: 'Agenda',                 icon: 'calendar-days' },
+    { id: 'galeri',    label: 'Galeri',                 icon: 'image' },
+    { id: 'testimoni', label: 'Testimoni',              icon: 'quote' },
+    { id: 'faq',       label: 'FAQ',                    icon: 'help-circle' },
+    { id: 'customSections', label: 'Tambah Halaman',    icon: 'layout-template' },
+    { id: 'pageOrder', label: 'Atur Urutan Halaman',    icon: 'move-vertical' },
+    { id: 'kontak',    label: 'Kontak & Footer',        icon: 'phone' },
+    { id: 'pengaturan',label: 'Pengaturan Akun',        icon: 'settings' }
+];
+
+function buildAdminNav() {
+    const nav = document.getElementById('admin-nav');
+    nav.innerHTML = ADMIN_MENU.map(m => `
+        <a href="#" data-panel="${m.id}" onclick="showAdminPanel('${m.id}'); return false;" class="admin-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slateMuted hover:bg-slate-100 transition">
+            <i data-lucide="${m.icon}" class="w-4 h-4"></i> ${m.label}
+        </a>
+    `).join('');
+    reInitIcons();
+}
+
+function setActiveNav(panelId) {
+    document.querySelectorAll('.admin-nav-item').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-panel') === panelId);
+    });
+}
+
+let currentPanel = 'overview';
+
+function showAdminPanel(panelId) {
+    currentPanel = panelId;
+    setActiveNav(panelId);
+    const menuItem = ADMIN_MENU.find(m => m.id === panelId);
+    document.getElementById('admin-panel-title').textContent = menuItem ? menuItem.label : 'Dashboard';
+
+    const renderers = {
+        overview: renderPanelOverview,
+        hero: renderPanelHero,
+        sambutan: renderPanelSambutan,
+        profil: renderPanelProfil,
+        program: renderPanelProgram,
+        guru: renderPanelGuru,
+        prestasi: renderPanelPrestasi,
+        ekskul: renderPanelEkskul,
+        berita: renderPanelBerita,
+        agenda: renderPanelAgenda,
+        galeri: renderPanelGaleri,
+        testimoni: renderPanelTestimoni,
+        faq: () => renderPanelCrudList('faq', 'Kelola daftar pertanyaan yang sering diajukan (FAQ).'),
+        customSections: renderPanelCustomSections,
+        pageOrder: renderPanelPageOrder,
+        kontak: renderPanelKontak,
+        pengaturan: renderPanelPengaturan
+    };
+    document.getElementById('admin-panel-subtitle').textContent = SECTION_SUBTITLES[panelId] || '';
+    (renderers[panelId] || renderPanelOverview)();
+    reInitIcons();
+}
+
+const SECTION_SUBTITLES = {
+    overview: 'Ringkasan konten website sekolah.',
+    hero: 'Kelola judul, teks sambutan, dan statistik di halaman utama.',
+    sambutan: 'Kelola foto, teks sambutan, dan identitas Kepala Sekolah.',
+    profil: 'Kelola sambutan, visi, misi, dan fasilitas sekolah.',
+    customSections: 'Buat halaman/section baru secara mandiri tanpa coding, lalu tampilkan di beranda publik.',
+    pageOrder: 'Atur urutan tampil halaman di situs publik mulai dari Beranda, serta aktifkan/nonaktifkan halaman yang ingin ditampilkan.',
+    pengaturan: 'Ubah username dan password login admin.'
+};
+
+/* =========================================================================
+   ADMIN — Panel: Overview
+========================================================================= */
+function renderPanelOverview() {
+    const counts = [
+        { label: 'Program Unggulan', count: DB.program.length, icon: 'graduation-cap', color: 'text-primary bg-blue-50' },
+        { label: 'Tenaga Pendidik', count: DB.guru.length, icon: 'users', color: 'text-indigo-600 bg-indigo-50' },
+        { label: 'Prestasi', count: DB.prestasi.length, icon: 'trophy', color: 'text-amber-600 bg-amber-50' },
+        { label: 'Ekstrakurikuler', count: DB.ekskul.length, icon: 'tent', color: 'text-orange-600 bg-orange-50' },
+        { label: 'Berita', count: DB.berita.length, icon: 'newspaper', color: 'text-emerald-600 bg-emerald-50' },
+        { label: 'Agenda', count: DB.agenda.length, icon: 'calendar-days', color: 'text-rose-600 bg-rose-50' },
+        { label: 'Foto Galeri', count: DB.galeri.length, icon: 'image', color: 'text-sky-600 bg-sky-50' },
+        { label: 'Testimoni', count: DB.testimoni.length, icon: 'quote', color: 'text-violet-600 bg-violet-50' },
+        { label: 'FAQ', count: DB.faq.length, icon: 'help-circle', color: 'text-slate-600 bg-slate-100' },
+        { label: 'Halaman Tambahan', count: (DB.customSections || []).length, icon: 'layout-template', color: 'text-indigo-600 bg-indigo-50' }
+    ];
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-8 bg-gradient-to-br from-primary to-blue-500 text-white border-none">
+            <h3 class="text-xl font-bold mb-2">Selamat datang, ${escapeHtml(currentAdminUsername)} 👋</h3>
+            <p class="text-blue-50 text-sm">Semua perubahan yang Anda simpan di sini akan langsung memperbarui tampilan halaman publik website — dashboard ini adalah satu-satunya sumber data (single source of truth) untuk seluruh konten dinamis.</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            ${counts.map(c => `
+                <div class="inst-card p-5">
+                    <div class="w-10 h-10 rounded-lg ${c.color} flex items-center justify-center mb-4">
+                        <i data-lucide="${c.icon}" class="w-5 h-5"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-slateDark">${c.count}</p>
+                    <p class="text-xs text-slateMuted">${c.label}</p>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+/* =========================================================================
+   ADMIN — Panel: Hero
+========================================================================= */
+let tempHeroStats = [];
+
+function heroStatsFieldsHtml() {
+    if (!tempHeroStats.length) {
+        return `<p class="text-xs text-slateMuted italic">Belum ada statistik. Klik "Tambah Statistik" untuk menambahkan.</p>`;
+    }
+    return tempHeroStats.map((s, i) => `
+        <div class="flex items-center gap-2" data-stat-row="${i}">
+            <input type="text" value="${escapeHtml(s.value)}" placeholder="Nilai (mis: 24+)" oninput="tempHeroStats[${i}].value=this.value" class="w-1/3 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+            <input type="text" value="${escapeHtml(s.label)}" placeholder="Label (mis: Tenaga Pendidik)" oninput="tempHeroStats[${i}].label=this.value" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+            <button type="button" onclick="removeHeroStat(${i})" class="p-2 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+    `).join('');
+}
+
+function addHeroStat() {
+    tempHeroStats.push({ value: '', label: '' });
+    document.getElementById('hero-stats-fields').innerHTML = heroStatsFieldsHtml();
+    reInitIcons();
+}
+
+function removeHeroStat(i) {
+    tempHeroStats.splice(i, 1);
+    document.getElementById('hero-stats-fields').innerHTML = heroStatsFieldsHtml();
+    reInitIcons();
+}
+
+let tempHeroImages = [];
+
+function heroImagesFieldsHtml() {
+    if (!tempHeroImages.length) {
+        return `<p class="text-xs text-slateMuted italic">Belum ada gambar. Klik "Tambah Gambar" untuk menambahkan.</p>`;
+    }
+    return tempHeroImages.map((src, i) => `
+        <div class="flex items-center gap-3 p-2 rounded-lg border border-slate-200 hero-image-row">
+            <img src="${escapeHtml(src)}" class="w-16 h-12 rounded-lg object-cover border border-slate-200 bg-slate-50 shrink-0 hero-image-preview">
+            <div class="flex-1 space-y-1.5">
+                <input type="text" value="${escapeHtml(src)}" placeholder="Tempel URL gambar atau link Google Drive" class="hero-image-url-input w-full px-3 py-2 rounded-lg border border-slate-200 text-xs text-slateMuted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" oninput="normalizeImageUrlInput(this); this.closest('.hero-image-row').querySelector('.hero-image-preview').src=this.value">
+                <label class="inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i> Unggah dari perangkat
+                    <input type="file" accept="image/*" class="hidden" onchange="handleHeroImageFileSelect(this)">
+                </label>
+            </div>
+            <button type="button" onclick="removeHeroImage(${i})" class="p-2 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0" aria-label="Hapus gambar"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+    `).join('');
+}
+
+function addHeroImage() {
+    tempHeroImages.push('');
+    document.getElementById('hero-images-fields').innerHTML = heroImagesFieldsHtml();
+    reInitIcons();
+}
+
+function removeHeroImage(i) {
+    tempHeroImages.splice(i, 1);
+    document.getElementById('hero-images-fields').innerHTML = heroImagesFieldsHtml();
+    reInitIcons();
+}
+
+async function handleHeroImageFileSelect(fileInputEl) {
+    const row = fileInputEl.closest('.hero-image-row');
+    const urlInput = row.querySelector('.hero-image-url-input');
+    const preview = row.querySelector('.hero-image-preview');
+    const file = fileInputEl.files && fileInputEl.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('File yang dipilih bukan gambar.', 'error');
+        fileInputEl.value = '';
+        return;
+    }
+    try {
+        const p = IMAGE_UPLOAD_PRESETS.banner;
+        const dataUrl = await resizeImageFile(file, p.maxWidth, p.quality, p.sizeLimit);
+        urlInput.value = dataUrl;
+        preview.src = dataUrl;
+        showToast('Foto berhasil diunggah — klik "Simpan Perubahan" untuk menerapkannya.');
+    } catch (err) {
+        handleImageUploadError(err);
+    } finally {
+        fileInputEl.value = '';
+    }
+}
+
+function renderPanelHero() {
+    const h = DB.hero;
+    tempHeroStats = JSON.parse(JSON.stringify(h.stats || []));
+    tempHeroImages = JSON.parse(JSON.stringify((h.images && h.images.length) ? h.images : ['']));
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6">
+            <form id="hero-form" class="space-y-5" onsubmit="event.preventDefault(); saveHeroForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Badge Pengumuman</label>
+                    <input type="text" id="f-hero-badge" value="${escapeHtml(h.badge)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (bagian awal)</label>
+                        <input type="text" id="f-hero-prefix" value="${escapeHtml(h.headlinePrefix)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (highlight warna)</label>
+                        <input type="text" id="f-hero-highlight" value="${escapeHtml(h.headlineHighlight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Teks Sambutan</label>
+                    <textarea id="f-hero-subtitle" rows="3" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml(h.subtitle)}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Teks Tombol Utama</label>
+                        <input type="text" id="f-hero-cta1" value="${escapeHtml(h.ctaPrimary)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Teks Tombol Kedua</label>
+                        <input type="text" id="f-hero-cta2" value="${escapeHtml(h.ctaSecondary)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div class="pt-2 border-t border-borderLight">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-sm font-semibold text-slateDark">Gambar Utama (Carousel)</p>
+                        <button type="button" onclick="addHeroImage()" class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Gambar
+                        </button>
+                    </div>
+                    <p class="text-xs text-slateMuted mb-3">Tambahkan lebih dari satu gambar agar tampil sebagai carousel yang bergeser otomatis di halaman utama. Gambar yang akan tampil berikutnya muncul sebagai ikon kecil pada badge "Tingkat Kelulusan".</p>
+                    <div class="space-y-2" id="hero-images-fields">${heroImagesFieldsHtml()}</div>
+                </div>
+
+                <div class="pt-2 border-t border-borderLight">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-sm font-semibold text-slateDark">Statistik Singkat</p>
+                        <button type="button" onclick="addHeroStat()" class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Statistik
+                        </button>
+                    </div>
+                    <div class="space-y-2" id="hero-stats-fields">${heroStatsFieldsHtml()}</div>
+                </div>
+
+                <div class="pt-2 border-t border-borderLight grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm font-semibold text-slateDark mb-3">Badge Melayang 1 (Akreditasi)</p>
+                        <div class="space-y-2">
+                            <input type="text" id="f-hero-badge1-title" value="${escapeHtml(h.badge1Title)}" placeholder="Judul" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                            <input type="text" id="f-hero-badge1-subtitle" value="${escapeHtml(h.badge1Subtitle)}" placeholder="Subjudul" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slateDark mb-3">Badge Melayang 2 (Kelulusan)</p>
+                        <div class="space-y-2">
+                            <input type="text" id="f-hero-badge2-value" value="${escapeHtml(h.badge2Value)}" placeholder="Nilai" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                            <input type="text" id="f-hero-badge2-label" value="${escapeHtml(h.badge2Label)}" placeholder="Label" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Perubahan</button>
+            </form>
+        </div>
+    `;
+}
+
+function saveHeroForm() {
+    const h = DB.hero;
+    h.badge = document.getElementById('f-hero-badge').value;
+    h.headlinePrefix = document.getElementById('f-hero-prefix').value;
+    h.headlineHighlight = document.getElementById('f-hero-highlight').value;
+    h.subtitle = document.getElementById('f-hero-subtitle').value;
+    h.ctaPrimary = document.getElementById('f-hero-cta1').value;
+    h.ctaSecondary = document.getElementById('f-hero-cta2').value;
+    h.images = Array.from(document.querySelectorAll('.hero-image-url-input')).map(el => el.value.trim()).filter(Boolean);
+    h.stats = tempHeroStats.filter(s => (s.value && s.value.trim()) || (s.label && s.label.trim()));
+    h.badge1Title = document.getElementById('f-hero-badge1-title').value;
+    h.badge1Subtitle = document.getElementById('f-hero-badge1-subtitle').value;
+    h.badge2Value = document.getElementById('f-hero-badge2-value').value;
+    h.badge2Label = document.getElementById('f-hero-badge2-label').value;
+    saveDB();
+    showToast('Konten Hero berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Sambutan Kepala Sekolah
+========================================================================= */
+function renderPanelSambutan() {
+    const s = DB.sambutan;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6">
+            <form id="sambutan-form" class="space-y-5" onsubmit="event.preventDefault(); saveSambutanForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Badge Kecil</label>
+                    <input type="text" id="f-sambutan-badge" value="${escapeHtml(s.badge)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (bagian awal)</label>
+                        <input type="text" id="f-sambutan-prefix" value="${escapeHtml(s.titlePrefix)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (highlight warna, mis: nama sekolah)</label>
+                        <input type="text" id="f-sambutan-highlight" value="${escapeHtml(s.titleHighlight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Isi Sambutan (satu paragraf per baris)</label>
+                    <textarea id="f-sambutan-paragraphs" rows="6" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml((s.paragraphs || []).join('\n'))}</textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Nama Kepala Sekolah</label>
+                        <input type="text" id="f-sambutan-name" value="${escapeHtml(s.name)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Jabatan</label>
+                        <input type="text" id="f-sambutan-role" value="${escapeHtml(s.role)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Foto Kepala Sekolah</label>
+                    <div class="flex items-center gap-3 mb-2">
+                        <img id="f-sambutan-photo-preview" src="${escapeHtml(s.photo)}" class="w-20 h-20 rounded-lg object-cover border border-slate-200 bg-slate-50">
+                        <label class="flex-1 cursor-pointer">
+                            <div class="px-3 py-2.5 rounded-lg border border-dashed border-slate-300 text-xs text-slateMuted hover:border-primary hover:text-primary transition text-center">
+                                <i data-lucide="upload" class="w-4 h-4 inline mb-0.5"></i> Klik untuk unggah foto dari perangkat
+                            </div>
+                            <input type="file" accept="image/*" class="hidden" onchange="handleImageFileSelect(this, 'f-sambutan-photo', 'f-sambutan-photo-preview', 'face')">
+                        </label>
+                    </div>
+                    <input type="text" id="f-sambutan-photo" value="${escapeHtml(s.photo)}" oninput="normalizeImageUrlInput(this); document.getElementById('f-sambutan-photo-preview').src=this.value" placeholder="atau tempel URL gambar / link Google Drive" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-xs text-slateMuted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Perubahan</button>
+            </form>
+        </div>
+    `;
+}
+
+function saveSambutanForm() {
+    DB.sambutan.badge = document.getElementById('f-sambutan-badge').value;
+    DB.sambutan.titlePrefix = document.getElementById('f-sambutan-prefix').value;
+    DB.sambutan.titleHighlight = document.getElementById('f-sambutan-highlight').value;
+    DB.sambutan.paragraphs = document.getElementById('f-sambutan-paragraphs').value.split('\n').map(p => p.trim()).filter(Boolean);
+    DB.sambutan.name = document.getElementById('f-sambutan-name').value;
+    DB.sambutan.role = document.getElementById('f-sambutan-role').value;
+    DB.sambutan.photo = document.getElementById('f-sambutan-photo').value;
+    saveDB();
+    showToast('Sambutan Kepala Sekolah berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Profil Sekolah
+========================================================================= */
+function renderPanelProfil() {
+    const p = DB.profil;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6">
+            <form id="profil-form" class="space-y-5" onsubmit="event.preventDefault(); saveProfilForm();">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Label Kecil (eyebrow)</label>
+                        <input type="text" id="f-profil-eyebrow" value="${escapeHtml(p.eyebrow)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul Bagian</label>
+                        <input type="text" id="f-profil-title" value="${escapeHtml(p.title)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Deskripsi Singkat</label>
+                    <textarea id="f-profil-desc" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml(p.desc)}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Visi</label>
+                    <textarea id="f-profil-visi" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml(p.visi)}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Misi (satu poin per baris)</label>
+                    <textarea id="f-profil-misi" rows="4" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml((p.misi || []).join('\\n'))}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Fasilitas</label>
+                    <textarea id="f-profil-fasilitas" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml(p.fasilitas)}</textarea>
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Perubahan</button>
+            </form>
+        </div>
+    `;
+}
+
+function saveProfilForm() {
+    const p = DB.profil;
+    p.eyebrow = document.getElementById('f-profil-eyebrow').value;
+    p.title = document.getElementById('f-profil-title').value;
+    p.desc = document.getElementById('f-profil-desc').value;
+    p.visi = document.getElementById('f-profil-visi').value;
+    p.misi = document.getElementById('f-profil-misi').value.split('\\n').map(s => s.trim()).filter(Boolean);
+    p.fasilitas = document.getElementById('f-profil-fasilitas').value;
+    saveDB();
+    showToast('Profil sekolah berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Testimoni (teks halaman + daftar testimoni)
+========================================================================= */
+function renderPanelTestimoni() {
+    const h = DB.testimoniHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="testimoni-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveTestimoniHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Judul</label>
+                    <input type="text" id="f-testimoni-title" value="${escapeHtml(h.title)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('testimoni', 'Kelola daftar testimoni wali murid — bisa menambahkan lebih dari satu.')}
+    `;
+    reInitIcons();
+}
+
+function saveTestimoniHeaderForm() {
+    const h = DB.testimoniHeader;
+    h.title = document.getElementById('f-testimoni-title').value;
+    saveDB();
+    showToast('Teks halaman Testimoni berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Tambah Halaman/Section (dinamis, tampil di beranda publik)
+========================================================================= */
+function renderPanelCustomSections() {
+    const list = DB.customSections || [];
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6 bg-blue-50/50 border-blue-100">
+            <p class="text-sm text-slateDark leading-relaxed">
+                Gunakan menu ini untuk menambahkan <b>halaman/section baru</b> yang tampil otomatis di beranda publik — tanpa perlu ubah kode. Halaman baru yang dibuat di sini akan otomatis muncul di menu <b>"Atur Urutan Halaman"</b>, tempat Anda bisa mengatur posisi tampilnya (drag &amp; drop) bersama halaman lain serta mengaktifkan/menonaktifkannya. Aktifkan "Tampilkan di menu navigasi" agar section punya tautan cepat di menu "Lainnya" pada navbar.
+            </p>
+        </div>
+        <div class="inst-card overflow-hidden">
+            <div class="flex items-center justify-between p-5 border-b border-borderLight">
+                <p class="text-sm text-slateMuted">${list.length} section kustom ditambahkan.</p>
+                <button onclick="openCustomSectionTypePicker()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Tambah Halaman/Section
+                </button>
+            </div>
+            <div class="divide-y divide-borderLight">
+                ${list.length === 0 ? `<p class="px-5 py-10 text-center text-sm text-slateMuted">Belum ada section tambahan. Klik "Tambah Halaman/Section" untuk membuat yang pertama.</p>` : ''}
+                ${list.map((s, i) => `
+                    <div class="flex items-center gap-4 p-4 hover:bg-slate-50">
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center shrink-0">
+                            <i data-lucide="${(CUSTOM_SECTION_TYPES[s.type] || {}).icon || 'file'}" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slateDark truncate">${escapeHtml(s.title || '(Tanpa judul)')}</p>
+                            <p class="text-xs text-slateMuted">${(CUSTOM_SECTION_TYPES[s.type] || {}).label || s.type}${s.menuLabel ? ' • tampil di menu navigasi' : ''}</p>
+                        </div>
+                        <button onclick="toggleCustomSectionActive(${i})" class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${s.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slateMuted'}">
+                            <span class="w-1.5 h-1.5 rounded-full ${s.active ? 'bg-emerald-500' : 'bg-slate-400'}"></span> ${s.active ? 'Aktif' : 'Nonaktif'}
+                        </button>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="openCustomSectionEditor(${i})" class="p-2 text-slateMuted hover:text-primary hover:bg-blue-50 rounded-lg transition" aria-label="Edit"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                            <button onclick="requestDeleteCustomSection(${i})" class="p-2 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition" aria-label="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    reInitIcons();
+}
+
+function toggleCustomSectionActive(i) {
+    DB.customSections[i].active = !DB.customSections[i].active;
+    saveDB();
+    renderPanelCustomSections();
+    showToast(DB.customSections[i].active ? 'Section diaktifkan di beranda.' : 'Section disembunyikan dari beranda.');
+}
+
+function requestDeleteCustomSection(i) {
+    openConfirmModal('Section ini akan dihapus secara permanen dari beranda.', () => {
+        DB.customSections.splice(i, 1);
+        saveDB();
+        renderPanelCustomSections();
+        showToast('Section berhasil dihapus.');
+    });
+}
+
+/* =========================================================================
+   ADMIN — Panel: Atur Urutan Halaman (drag & drop + aktif/nonaktif)
+========================================================================= */
+function renderPanelPageOrder() {
+    const list = DB.pageOrder || [];
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6 bg-blue-50/50 border-blue-100">
+            <p class="text-sm text-slateDark leading-relaxed">
+                Atur urutan tampilan halaman di situs publik, mulai dari <b>Beranda</b> hingga halaman terakhir — termasuk halaman kustom yang dibuat lewat menu "Tambah Halaman" (ditandai badge <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-500">KUSTOM</span>). Geser (drag &amp; drop) ikon <i data-lucide="grip-vertical" class="w-3.5 h-3.5 inline align-text-bottom"></i> pada setiap baris untuk mengubah urutan, atau gunakan tombol panah. Gunakan sakelar status untuk menampilkan atau menyembunyikan halaman dari situs publik dan menu navigasi.
+            </p>
+        </div>
+        <div class="inst-card overflow-hidden">
+            <div class="p-5 border-b border-borderLight">
+                <p class="text-sm text-slateMuted">Perubahan tersimpan otomatis dan langsung diterapkan ke situs publik.</p>
+            </div>
+            <div class="divide-y divide-borderLight" id="page-order-list">
+                ${list.map((p, i) => pageOrderRowHtml(p, i, list.length)).join('')}
+            </div>
+        </div>
+    `;
+    reInitIcons();
+    attachPageOrderDragEvents();
+}
+
+function pageOrderRowHtml(p, i, total) {
+    return `
+    <div class="flex items-center gap-4 p-4 hover:bg-slate-50 transition ${p.locked ? 'bg-slate-50/70' : ''}" draggable="${p.locked ? 'false' : 'true'}" data-key="${p.key}" data-index="${i}">
+        <span class="shrink-0 text-slateMuted ${p.locked ? 'opacity-30 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}" title="${p.locked ? 'Beranda selalu berada di urutan pertama' : 'Geser untuk mengubah urutan'}">
+            <i data-lucide="grip-vertical" class="w-5 h-5"></i>
+        </span>
+        <div class="w-9 h-9 rounded-lg bg-blue-50 text-primary flex items-center justify-center shrink-0">
+            <i data-lucide="${p.icon || 'file'}" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slateDark truncate flex items-center gap-2">
+                ${escapeHtml(p.label)}
+                ${p.custom ? '<span class="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-500">KUSTOM</span>' : ''}
+            </p>
+            ${p.locked ? '<p class="text-xs text-slateMuted">Halaman utama — selalu tampil &amp; berada di urutan pertama</p>' : ''}
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+            ${p.custom ? `<button onclick="editCustomPageFromOrder('${p.key}')" class="p-2 text-slateMuted hover:text-primary hover:bg-blue-50 rounded-lg transition" aria-label="Edit halaman kustom"><i data-lucide="pencil" class="w-4 h-4"></i></button>` : ''}
+            <button onclick="movePageOrder(${i}, -1)" ${(i <= 1 || p.locked) ? 'disabled' : ''} class="p-2 text-slateMuted hover:text-primary hover:bg-blue-50 rounded-lg transition disabled:opacity-30 disabled:pointer-events-none" aria-label="Naikkan urutan"><i data-lucide="arrow-up" class="w-4 h-4"></i></button>
+            <button onclick="movePageOrder(${i}, 1)" ${(i === total - 1 || p.locked) ? 'disabled' : ''} class="p-2 text-slateMuted hover:text-primary hover:bg-blue-50 rounded-lg transition disabled:opacity-30 disabled:pointer-events-none" aria-label="Turunkan urutan"><i data-lucide="arrow-down" class="w-4 h-4"></i></button>
+        </div>
+        <button onclick="togglePageOrderActive(${i})" ${p.locked ? 'disabled' : ''} class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${p.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slateMuted'} ${p.locked ? 'opacity-60 cursor-not-allowed' : ''}">
+            <span class="w-1.5 h-1.5 rounded-full ${p.active ? 'bg-emerald-500' : 'bg-slate-400'}"></span> ${p.active ? 'Tampil' : 'Disembunyikan'}
+        </button>
+    </div>`;
+}
+
+function togglePageOrderActive(i) {
+    const item = DB.pageOrder[i];
+    if (!item || item.locked) return;
+    item.active = !item.active;
+    // sinkronkan balik ke data halaman kustom terkait, supaya status di menu "Tambah Halaman" tetap konsisten
+    if (item.key.startsWith(CUSTOM_PAGE_KEY_PREFIX)) {
+        const id = item.key.slice(CUSTOM_PAGE_KEY_PREFIX.length);
+        const cs = (DB.customSections || []).find(s => s.id === id);
+        if (cs) cs.active = item.active;
+    }
+    saveDB();
+    renderPanelPageOrder();
+    showToast(item.active ? 'Halaman ditampilkan di situs publik.' : 'Halaman disembunyikan dari situs publik.');
+}
+
+function editCustomPageFromOrder(key) {
+    const id = key.slice(CUSTOM_PAGE_KEY_PREFIX.length);
+    const idx = (DB.customSections || []).findIndex(s => s.id === id);
+    if (idx === -1) {
+        showToast('Halaman kustom tidak ditemukan.', 'error');
+        return;
+    }
+    openCustomSectionEditor(idx);
+}
+
+function movePageOrder(i, dir) {
+    const list = DB.pageOrder;
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    if (list[i].locked || list[j].locked) return;
+    const tmp = list[i];
+    list[i] = list[j];
+    list[j] = tmp;
+    saveDB();
+    renderPanelPageOrder();
+    showToast('Urutan halaman diperbarui.');
+}
+
+let dragPageOrderIndex = null;
+
+function attachPageOrderDragEvents() {
+    const rows = document.querySelectorAll('#page-order-list [draggable="true"]');
+    rows.forEach(row => {
+        row.addEventListener('dragstart', () => {
+            dragPageOrderIndex = parseInt(row.getAttribute('data-index'), 10);
+            row.classList.add('opacity-40');
+        });
+        row.addEventListener('dragend', () => {
+            row.classList.remove('opacity-40');
+            dragPageOrderIndex = null;
+        });
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const targetIndex = parseInt(row.getAttribute('data-index'), 10);
+            if (dragPageOrderIndex === null || dragPageOrderIndex === targetIndex) return;
+            reorderPageOrder(dragPageOrderIndex, targetIndex);
+        });
+    });
+}
+
+function reorderPageOrder(fromIndex, toIndex) {
+    const list = DB.pageOrder;
+    if (list[fromIndex].locked || list[toIndex].locked) return;
+    const [moved] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, moved);
+    const lockedIdx = list.findIndex(p => p.locked);
+    if (lockedIdx > 0) {
+        const [lockedItem] = list.splice(lockedIdx, 1);
+        list.unshift(lockedItem);
+    }
+    saveDB();
+    renderPanelPageOrder();
+    showToast('Urutan halaman diperbarui.');
+}
+
+let editingCustomSectionIndex = null;
+let tempCustomSection = null;
+let tempCustomSectionItems = [];
+
+function openCustomSectionTypePicker() {
+    editingCustomSectionIndex = null;
+    tempCustomSection = null;
+    tempCustomSectionItems = [];
+    document.getElementById('custom-section-modal-body').innerHTML = customSectionTypePickerHtml();
+    document.getElementById('custom-section-modal').classList.remove('hidden-important');
+    document.getElementById('custom-section-modal').classList.add('flex');
+    reInitIcons();
+}
+
+function customSectionTypePickerHtml() {
+    return `
+        <h3 class="text-lg font-bold text-slateDark mb-1">Tambah Halaman/Section Baru</h3>
+        <p class="text-sm text-slateMuted mb-6">Pilih tipe tampilan untuk section baru ini.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${Object.keys(CUSTOM_SECTION_TYPES).map(key => `
+                <button type="button" onclick="startNewCustomSection('${key}')" class="text-left p-4 rounded-xl border border-slate-200 hover:border-primary hover:bg-blue-50/50 transition">
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 text-primary flex items-center justify-center mb-3">
+                        <i data-lucide="${CUSTOM_SECTION_TYPES[key].icon}" class="w-5 h-5"></i>
+                    </div>
+                    <p class="text-sm font-bold text-slateDark mb-1">${CUSTOM_SECTION_TYPES[key].label}</p>
+                    <p class="text-xs text-slateMuted">${CUSTOM_SECTION_TYPES[key].desc}</p>
+                </button>
+            `).join('')}
+        </div>
+        <button type="button" onclick="closeCustomSectionModal()" class="w-full mt-6 px-4 py-2.5 rounded-lg border border-slate-200 text-slateDark text-sm font-semibold hover:bg-slate-50 transition-colors">Batal</button>
+    `;
+}
+
+function startNewCustomSection(type) {
+    tempCustomSection = {
+        id: 'cs_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        type: type,
+        eyebrow: '', title: '', subtitle: '',
+        bgStyle: 'light', active: true, menuLabel: '',
+        image: '', imagePosition: 'right',
+        columns: 3,
+        ctaLabel: '', ctaLink: ''
+    };
+    tempCustomSectionItems = [];
+    renderCustomSectionEditorForm();
+}
+
+function openCustomSectionEditor(i) {
+    editingCustomSectionIndex = i;
+    tempCustomSection = JSON.parse(JSON.stringify(DB.customSections[i]));
+    tempCustomSectionItems = JSON.parse(JSON.stringify(DB.customSections[i].items || []));
+    document.getElementById('custom-section-modal').classList.remove('hidden-important');
+    document.getElementById('custom-section-modal').classList.add('flex');
+    renderCustomSectionEditorForm();
+}
+
+function closeCustomSectionModal() {
+    document.getElementById('custom-section-modal').classList.add('hidden-important');
+    document.getElementById('custom-section-modal').classList.remove('flex');
+    tempCustomSection = null;
+    tempCustomSectionItems = [];
+    editingCustomSectionIndex = null;
+}
+
+function renderCustomSectionEditorForm() {
+    const s = tempCustomSection;
+    const typeInfo = CUSTOM_SECTION_TYPES[s.type];
+    document.getElementById('custom-section-modal-body').innerHTML = `
+        <h3 class="text-lg font-bold text-slateDark mb-1">${editingCustomSectionIndex === null ? 'Tambah' : 'Edit'} Section — ${typeInfo.label}</h3>
+        <p class="text-sm text-slateMuted mb-6">Lengkapi konten section, lalu simpan.</p>
+        <form onsubmit="event.preventDefault(); saveCustomSection();" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slateDark mb-1">Label Kecil (Eyebrow) — opsional</label>
+                <input type="text" id="cs-f-eyebrow" value="${escapeHtml(s.eyebrow)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slateDark mb-1">Judul Section</label>
+                <input type="text" id="cs-f-title" value="${escapeHtml(s.title)}" required class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slateDark mb-1">${s.type === 'text' ? 'Isi Teks' : 'Subjudul / Deskripsi'}</label>
+                <textarea id="cs-f-subtitle" rows="${s.type === 'text' ? 4 : 2}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml(s.subtitle)}</textarea>
+            </div>
+
+            ${s.type === 'text' ? `
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Gambar</label>
+                    <div class="flex items-center gap-3 mb-2">
+                        <img id="cs-f-image-preview" src="${escapeHtml(s.image)}" class="w-20 h-16 rounded-lg object-cover border border-slate-200 bg-slate-50">
+                        <label class="flex-1 cursor-pointer">
+                            <div class="px-3 py-2.5 rounded-lg border border-dashed border-slate-300 text-xs text-slateMuted hover:border-primary hover:text-primary transition text-center">
+                                <i data-lucide="upload" class="w-4 h-4 inline mb-0.5"></i> Unggah dari perangkat
+                            </div>
+                            <input type="file" accept="image/*" class="hidden" onchange="handleImageFileSelect(this, 'cs-f-image', 'cs-f-image-preview')">
+                        </label>
+                    </div>
+                    <input type="text" id="cs-f-image" value="${escapeHtml(s.image)}" oninput="normalizeImageUrlInput(this); document.getElementById('cs-f-image-preview').src=this.value" placeholder="atau tempel URL gambar / link Drive" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-xs text-slateMuted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Posisi Gambar</label>
+                    <select id="cs-f-image-position" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                        <option value="right" ${s.imagePosition === 'right' ? 'selected' : ''}>Kanan</option>
+                        <option value="left" ${s.imagePosition === 'left' ? 'selected' : ''}>Kiri</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Teks Tombol (opsional)</label>
+                        <input type="text" id="cs-f-cta-label" value="${escapeHtml(s.ctaLabel)}" placeholder="mis: Selengkapnya" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Tautan Tombol</label>
+                        <input type="text" id="cs-f-cta-link" value="${escapeHtml(s.ctaLink)}" placeholder="mis: #kontak atau https://..." class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                </div>
+            ` : ''}
+
+            ${s.type === 'cards' ? `
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Jumlah Kolom</label>
+                    <select id="cs-f-columns" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                        <option value="2" ${s.columns === 2 ? 'selected' : ''}>2 Kolom</option>
+                        <option value="3" ${s.columns === 3 || !s.columns ? 'selected' : ''}>3 Kolom</option>
+                        <option value="4" ${s.columns === 4 ? 'selected' : ''}>4 Kolom</option>
+                    </select>
+                </div>
+                <div class="pt-2 border-t border-borderLight">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-semibold text-slateDark">Daftar Kartu</p>
+                        <button type="button" onclick="addCustomSectionItem()" class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Kartu</button>
+                    </div>
+                    <div class="space-y-2" id="cs-items-fields">${customSectionCardItemsHtml()}</div>
+                </div>
+            ` : ''}
+
+            ${s.type === 'services' ? `
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Jumlah Kolom</label>
+                    <select id="cs-f-columns" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                        <option value="2" ${s.columns === 2 ? 'selected' : ''}>2 Kolom</option>
+                        <option value="3" ${s.columns === 3 || !s.columns ? 'selected' : ''}>3 Kolom</option>
+                        <option value="4" ${s.columns === 4 ? 'selected' : ''}>4 Kolom</option>
+                    </select>
+                </div>
+                <div class="pt-2 border-t border-borderLight">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-semibold text-slateDark">Daftar Layanan / Website</p>
+                        <button type="button" onclick="addCustomSectionItem()" class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Layanan</button>
+                    </div>
+                    <p class="text-xs text-slateMuted mb-3">Tiap layanan tampil sebagai kartu berisi ikon, badge warna, daftar poin, dan tombol tautan menuju website.</p>
+                    <div class="space-y-3" id="cs-items-fields">${customSectionServiceItemsHtml()}</div>
+                </div>
+            ` : ''}
+
+            ${s.type === 'gallery' ? `
+                <div class="pt-2 border-t border-borderLight">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-semibold text-slateDark">Daftar Foto</p>
+                        <button type="button" onclick="addCustomSectionItem()" class="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Foto</button>
+                    </div>
+                    <div class="space-y-2" id="cs-items-fields">${customSectionGalleryItemsHtml()}</div>
+                </div>
+            ` : ''}
+
+            ${s.type === 'cta' ? `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Teks Tombol</label>
+                        <input type="text" id="cs-f-cta-label" value="${escapeHtml(s.ctaLabel)}" placeholder="mis: Daftar Sekarang" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Tautan Tombol</label>
+                        <input type="text" id="cs-f-cta-link" value="${escapeHtml(s.ctaLink)}" placeholder="mis: #kontak atau https://..." class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                </div>
+            ` : ''}
+
+            <div class="pt-2 border-t border-borderLight grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Warna Latar</label>
+                    <select id="cs-f-bg" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                        <option value="light" ${s.bgStyle === 'light' ? 'selected' : ''}>Putih</option>
+                        <option value="gray" ${s.bgStyle === 'gray' ? 'selected' : ''}>Abu-abu Muda</option>
+                        <option value="dark" ${s.bgStyle === 'dark' ? 'selected' : ''}>Gelap</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Label di Menu Navigasi — opsional</label>
+                    <input type="text" id="cs-f-menu-label" value="${escapeHtml(s.menuLabel)}" placeholder="mis: Fasilitas" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                </div>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-slateDark">
+                <input type="checkbox" id="cs-f-active" ${s.active ? 'checked' : ''} class="rounded border-slate-300 text-primary focus:ring-primary/30">
+                Tampilkan di beranda publik (aktif)
+            </label>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeCustomSectionModal()" class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-slateDark text-sm font-semibold hover:bg-slate-50 transition-colors">Batal</button>
+                <button type="submit" class="flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Section</button>
+            </div>
+        </form>
+    `;
+    reInitIcons();
+}
+
+function customSectionCardItemsHtml() {
+    if (!tempCustomSectionItems.length) return `<p class="text-xs text-slateMuted italic">Belum ada kartu. Klik "Tambah Kartu".</p>`;
+    return tempCustomSectionItems.map((it, i) => `
+        <div class="p-3 rounded-lg border border-slate-200 space-y-2">
+            <div class="flex gap-2">
+                <input type="text" value="${escapeHtml(it.icon || '')}" placeholder="Nama icon (mis: book-open)" oninput="tempCustomSectionItems[${i}].icon=this.value" class="w-1/3 px-3 py-2 rounded-lg border border-slate-200 text-xs">
+                <input type="text" value="${escapeHtml(it.title || '')}" placeholder="Judul kartu" oninput="tempCustomSectionItems[${i}].title=this.value" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm">
+                <button type="button" onclick="removeCustomSectionItem(${i})" class="p-2 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+            <textarea rows="2" placeholder="Deskripsi singkat" oninput="tempCustomSectionItems[${i}].desc=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">${escapeHtml(it.desc || '')}</textarea>
+        </div>
+    `).join('');
+}
+
+function customSectionServiceItemsHtml() {
+    if (!tempCustomSectionItems.length) return `<p class="text-xs text-slateMuted italic">Belum ada layanan. Klik "Tambah Layanan".</p>`;
+    return tempCustomSectionItems.map((it, i) => `
+        <div class="p-3 rounded-lg border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-bold text-slateDark">Layanan #${i + 1}</p>
+                <button type="button" onclick="removeCustomSectionItem(${i})" class="p-1.5 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+            <input type="text" value="${escapeHtml(it.title || '')}" placeholder="Nama layanan (mis: SIEKSTRASAPA)" oninput="tempCustomSectionItems[${i}].title=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold">
+            <div class="flex items-center gap-3">
+                <img id="cs-svc-img-preview-${i}" src="${escapeHtml(it.image || '')}" class="w-14 h-14 rounded-full object-cover border border-slate-200 bg-slate-50 shrink-0">
+                <div class="flex-1 space-y-1.5">
+                    <label class="flex items-center justify-center gap-1.5 cursor-pointer px-3 py-2 rounded-lg border border-dashed border-slate-300 text-xs text-slateMuted hover:border-primary hover:text-primary transition">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Unggah Foto/Logo Layanan
+                        <input type="file" accept="image/*" class="hidden" onchange="handleServiceItemImageSelect(this, ${i})">
+                    </label>
+                    <input type="text" value="${escapeHtml(it.image || '')}" placeholder="atau tempel URL gambar / link Drive" oninput="normalizeImageUrlInput(this); tempCustomSectionItems[${i}].image=this.value; document.getElementById('cs-svc-img-preview-${i}').src=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">
+                </div>
+            </div>
+            <input type="text" value="${escapeHtml(it.badge || '')}" placeholder="Badge/subjudul (mis: Sistem Informasi Ekstrakurikuler SDN 01 Papahan)" oninput="tempCustomSectionItems[${i}].badge=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">
+            <div class="grid grid-cols-2 gap-2">
+                <select onchange="tempCustomSectionItems[${i}].color=this.value" class="px-3 py-2 rounded-lg border border-slate-200 text-xs">
+                    ${Object.keys(CS_SERVICE_COLORS).map(k => `<option value="${k}" ${(it.color || 'blue') === k ? 'selected' : ''}>${CS_SERVICE_COLORS[k].name}</option>`).join('')}
+                </select>
+                <input type="text" value="${escapeHtml(it.listHeading || '')}" placeholder="Judul daftar (mis: Memberikan informasi seputar:)" oninput="tempCustomSectionItems[${i}].listHeading=this.value" class="px-3 py-2 rounded-lg border border-slate-200 text-xs">
+            </div>
+            <textarea rows="3" placeholder="Daftar poin (satu poin per baris)" oninput="tempCustomSectionItems[${i}].features=this.value.split('\\n').map(x=>x.trim()).filter(Boolean)" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">${escapeHtml((it.features || []).join('\n'))}</textarea>
+            <input type="text" value="${escapeHtml(it.link || '')}" placeholder="Tautan website (mis: https://siekstrasapa.sdn01papahan.sch.id)" oninput="tempCustomSectionItems[${i}].link=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">
+            <input type="text" value="${escapeHtml(it.linkText || '')}" placeholder="Teks tautan yang tampil (opsional, kosongkan agar otomatis dari URL)" oninput="tempCustomSectionItems[${i}].linkText=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">
+        </div>
+    `).join('');
+}
+
+function customSectionGalleryItemsHtml() {
+    if (!tempCustomSectionItems.length) return `<p class="text-xs text-slateMuted italic">Belum ada foto. Klik "Tambah Foto".</p>`;
+    return tempCustomSectionItems.map((it, i) => `
+        <div class="flex items-center gap-3 p-2 rounded-lg border border-slate-200 cs-gallery-row">
+            <img src="${escapeHtml(it.image || '')}" class="w-16 h-12 rounded-lg object-cover border border-slate-200 bg-slate-50 shrink-0 cs-gallery-preview">
+            <div class="flex-1 space-y-1.5">
+                <input type="text" value="${escapeHtml(it.image || '')}" placeholder="URL gambar / link Drive" oninput="normalizeImageUrlInput(this); tempCustomSectionItems[${i}].image=this.value; this.closest('.cs-gallery-row').querySelector('.cs-gallery-preview').src=this.value" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs">
+                <div class="flex items-center gap-2">
+                    <input type="text" value="${escapeHtml(it.caption || '')}" placeholder="Keterangan (opsional)" oninput="tempCustomSectionItems[${i}].caption=this.value" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-xs">
+                    <label class="inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer shrink-0">
+                        <i data-lucide="upload" class="w-3.5 h-3.5"></i> Unggah
+                        <input type="file" accept="image/*" class="hidden" onchange="handleCustomGalleryFileSelect(this, ${i})">
+                    </label>
+                </div>
+            </div>
+            <button type="button" onclick="removeCustomSectionItem(${i})" class="p-2 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+    `).join('');
+}
+
+function addCustomSectionItem() {
+    if (tempCustomSection.type === 'cards') {
+        tempCustomSectionItems.push({ icon: '', title: '', desc: '' });
+    } else if (tempCustomSection.type === 'services') {
+        tempCustomSectionItems.push({ image: '', title: '', badge: '', color: 'blue', listHeading: '', features: [], link: '', linkText: '' });
+    } else {
+        tempCustomSectionItems.push({ image: '', caption: '' });
+    }
+    refreshCustomSectionItemsFields();
+}
+
+function removeCustomSectionItem(i) {
+    tempCustomSectionItems.splice(i, 1);
+    refreshCustomSectionItemsFields();
+}
+
+function refreshCustomSectionItemsFields() {
+    const wrap = document.getElementById('cs-items-fields');
+    if (!wrap) return;
+    if (tempCustomSection.type === 'cards') {
+        wrap.innerHTML = customSectionCardItemsHtml();
+    } else if (tempCustomSection.type === 'services') {
+        wrap.innerHTML = customSectionServiceItemsHtml();
+    } else {
+        wrap.innerHTML = customSectionGalleryItemsHtml();
+    }
+    reInitIcons();
+}
+
+async function handleServiceItemImageSelect(fileInputEl, i) {
+    const file = fileInputEl.files && fileInputEl.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('File yang dipilih bukan gambar.', 'error');
+        fileInputEl.value = '';
+        return;
+    }
+    try {
+        const p = IMAGE_UPLOAD_PRESETS.banner;
+        const dataUrl = await resizeImageFile(file, p.maxWidth, p.quality, p.sizeLimit);
+        tempCustomSectionItems[i].image = dataUrl;
+        refreshCustomSectionItemsFields();
+        showToast('Foto layanan berhasil diunggah.');
+    } catch (err) {
+        handleImageUploadError(err);
+    } finally {
+        fileInputEl.value = '';
+    }
+}
+
+async function handleCustomGalleryFileSelect(fileInputEl, i) {
+    const file = fileInputEl.files && fileInputEl.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('File yang dipilih bukan gambar.', 'error');
+        fileInputEl.value = '';
+        return;
+    }
+    try {
+        const p = IMAGE_UPLOAD_PRESETS.banner;
+        const dataUrl = await resizeImageFile(file, p.maxWidth, p.quality, p.sizeLimit);
+        tempCustomSectionItems[i].image = dataUrl;
+        refreshCustomSectionItemsFields();
+        showToast('Foto berhasil diunggah.');
+    } catch (err) {
+        handleImageUploadError(err);
+    } finally {
+        fileInputEl.value = '';
+    }
+}
+
+function saveCustomSection() {
+    const s = tempCustomSection;
+    s.eyebrow = document.getElementById('cs-f-eyebrow').value;
+    s.title = document.getElementById('cs-f-title').value;
+    s.subtitle = document.getElementById('cs-f-subtitle').value;
+    s.bgStyle = document.getElementById('cs-f-bg').value;
+    s.menuLabel = document.getElementById('cs-f-menu-label').value;
+    s.active = document.getElementById('cs-f-active').checked;
+
+    if (s.type === 'text') {
+        s.image = document.getElementById('cs-f-image').value;
+        s.imagePosition = document.getElementById('cs-f-image-position').value;
+        s.ctaLabel = document.getElementById('cs-f-cta-label').value;
+        s.ctaLink = document.getElementById('cs-f-cta-link').value;
+    }
+    if (s.type === 'cards') {
+        s.columns = parseInt(document.getElementById('cs-f-columns').value, 10) || 3;
+        s.items = tempCustomSectionItems.filter(it => (it.title && it.title.trim()) || (it.desc && it.desc.trim()));
+    }
+    if (s.type === 'services') {
+        s.columns = parseInt(document.getElementById('cs-f-columns').value, 10) || 3;
+        s.items = tempCustomSectionItems.filter(it => it.title && it.title.trim());
+    }
+    if (s.type === 'gallery') {
+        s.items = tempCustomSectionItems.filter(it => it.image && it.image.trim());
+    }
+    if (s.type === 'cta') {
+        s.ctaLabel = document.getElementById('cs-f-cta-label').value;
+        s.ctaLink = document.getElementById('cs-f-cta-link').value;
+    }
+
+    if (!s.title.trim()) {
+        showToast('Judul section wajib diisi.', 'error');
+        return;
+    }
+
+    if (!DB.customSections) DB.customSections = [];
+    if (editingCustomSectionIndex === null) {
+        DB.customSections.push(s);
+    } else {
+        DB.customSections[editingCustomSectionIndex] = s;
+    }
+    saveDB();
+    closeCustomSectionModal();
+    renderPanelCustomSections();
+    showToast('Section berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Kontak & Footer (objek tunggal)
+========================================================================= */
+function renderPanelKontak() {
+    const k = DB.kontak, f = DB.footer, m = DB.meta;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="inst-card p-6">
+                <h4 class="font-bold text-slateDark mb-4">Informasi Kontak</h4>
+                <form id="kontak-form" class="space-y-4" onsubmit="event.preventDefault(); saveKontakForm();">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Alamat</label>
+                        <textarea id="f-kontak-address" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml(k.address)}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Telepon</label>
+                        <input type="text" id="f-kontak-phone" value="${escapeHtml(k.phone)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Email</label>
+                        <input type="text" id="f-kontak-email" value="${escapeHtml(k.email)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Teks Tombol "Hubungi Kami" (navbar)</label>
+                        <input type="text" id="f-nav-cta" value="${escapeHtml(m.navCtaText)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Kontak</button>
+                </form>
+            </div>
+
+            <div class="inst-card p-6">
+                <h4 class="font-bold text-slateDark mb-4">Footer & Sosial Media</h4>
+                <form id="footer-form" class="space-y-4" onsubmit="event.preventDefault(); saveFooterForm();">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Deskripsi Footer</label>
+                        <textarea id="f-footer-desc" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml(f.desc)}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Teks Hak Cipta</label>
+                        <input type="text" id="f-footer-copyright" value="${escapeHtml(f.copyright)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Link Facebook</label>
+                        <input type="text" id="f-footer-fb" value="${escapeHtml(f.socialFacebook)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Link Instagram</label>
+                        <input type="text" id="f-footer-ig" value="${escapeHtml(f.socialInstagram)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Link YouTube</label>
+                        <input type="text" id="f-footer-yt" value="${escapeHtml(f.socialYoutube)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Footer</button>
+                </form>
+            </div>
+        </div>
+    `;
+}
+function saveKontakForm() {
+    const k = DB.kontak;
+    k.address = document.getElementById('f-kontak-address').value;
+    k.phone = document.getElementById('f-kontak-phone').value;
+    k.email = document.getElementById('f-kontak-email').value;
+    DB.meta.navCtaText = document.getElementById('f-nav-cta').value;
+    saveDB();
+    showToast('Informasi kontak berhasil disimpan.');
+}
+function saveFooterForm() {
+    const f = DB.footer;
+    f.desc = document.getElementById('f-footer-desc').value;
+    f.copyright = document.getElementById('f-footer-copyright').value;
+    f.socialFacebook = document.getElementById('f-footer-fb').value;
+    f.socialInstagram = document.getElementById('f-footer-ig').value;
+    f.socialYoutube = document.getElementById('f-footer-yt').value;
+    saveDB();
+    showToast('Footer berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Pengaturan Akun
+========================================================================= */
+function renderPanelPengaturan() {
+    const m = DB.meta;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <h4 class="font-bold text-slateDark mb-4">Identitas Website</h4>
+            <form id="meta-logo-form" class="space-y-4" onsubmit="event.preventDefault(); saveMetaLogoForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Foto Logo</label>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-14 h-14 rounded-xl overflow-hidden bg-primary flex items-center justify-center text-white font-bold text-lg shrink-0" id="meta-logo-preview-box">
+                            ${m.logoImage ? `<img src="${escapeHtml(m.logoImage)}" class="w-full h-full object-cover">` : escapeHtml(m.logoText || 'S1')}
+                        </div>
+                        <label class="flex-1 cursor-pointer">
+                            <div class="px-3 py-2.5 rounded-lg border border-dashed border-slate-300 text-xs text-slateMuted hover:border-primary hover:text-primary transition text-center">
+                                <i data-lucide="upload" class="w-4 h-4 inline mb-0.5"></i> Klik untuk unggah foto logo dari perangkat
+                            </div>
+                            <input type="file" accept="image/*" class="hidden" onchange="handleLogoFileSelect(this)">
+                        </label>
+                    </div>
+                    <input type="text" id="f-meta-logo-image" value="${escapeHtml(m.logoImage || '')}" oninput="normalizeImageUrlInput(this); updateMetaLogoPreview()" placeholder="atau tempel URL gambar logo / link Google Drive" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-xs text-slateMuted">
+                    ${m.logoImage ? `<button type="button" onclick="clearMetaLogoImage()" class="mt-2 text-xs text-red-600 hover:underline">Hapus foto logo (kembali ke teks inisial)</button>` : ''}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Teks Inisial Logo (tampil jika belum ada foto)</label>
+                    <input type="text" id="f-meta-logo-text" value="${escapeHtml(m.logoText || '')}" maxlength="4" oninput="updateMetaLogoPreview()" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Nama Sekolah</label>
+                        <input type="text" id="f-meta-school-name" value="${escapeHtml(m.schoolName || '')}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Tagline (tampil di bawah nama sekolah)</label>
+                        <input type="text" id="f-meta-school-location" value="${escapeHtml(m.schoolLocation || '')}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">
+                    </div>
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Identitas</button>
+            </form>
+        </div>
+        <div class="inst-card p-6 mb-6">
+            <h4 class="font-bold text-slateDark mb-1">Kelola Pengguna Admin</h4>
+            <p class="text-xs text-slateMuted mb-4">Tambahkan admin lain (mis. guru/staf lain yang ikut mengelola situs) dengan akun masing-masing, atau hapus akun yang sudah tidak dipakai.</p>
+            <div id="admin-users-list" class="space-y-2 mb-4"></div>
+            <form id="add-admin-form" class="flex flex-wrap items-end gap-3" onsubmit="event.preventDefault(); addAdminUser();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Username Baru</label>
+                    <input type="text" id="f-new-admin-username" autocomplete="off" class="px-4 py-2.5 rounded-lg border border-slate-200 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Password</label>
+                    <input type="password" id="f-new-admin-password" autocomplete="new-password" minlength="8" class="px-4 py-2.5 rounded-lg border border-slate-200 text-sm" required>
+                </div>
+                <button type="submit" class="px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Tambah Admin</button>
+            </form>
+            <p id="add-admin-error" class="hidden-important text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mt-3"></p>
+        </div>
+        <div class="inst-card p-6 mb-6">
+            <h4 class="font-bold text-slateDark mb-1">Ganti Password</h4>
+            <p class="text-xs text-slateMuted mb-4">Password baru diverifikasi &amp; disimpan oleh server (di-hash, tidak pernah tersimpan sebagai teks biasa). Anda harus memasukkan password saat ini untuk mengubahnya.</p>
+            <form id="pengaturan-form" class="space-y-4" onsubmit="event.preventDefault(); savePengaturanForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Password Saat Ini</label>
+                    <input type="password" id="f-set-current-password" autocomplete="current-password" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Password Baru</label>
+                    <input type="password" id="f-set-password" autocomplete="new-password" minlength="8" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm" required>
+                    <p class="text-xs text-slateMuted mt-1">Minimal 8 karakter.</p>
+                </div>
+                <p id="pengaturan-error" class="hidden-important text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2"></p>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Password</button>
+            </form>
+        </div>
+        <div class="inst-card p-6 mb-6">
+            <h4 class="font-bold text-slateDark mb-1">Backup &amp; Restore</h4>
+            <p class="text-xs text-slateMuted mb-4">Unduh seluruh isi dashboard (berita, galeri, guru, ekstrakurikuler, halaman kustom, dll — tidak termasuk password) sebagai satu file. Saat deploy ulang atau pindah Worker, tinggal pulihkan dari file ini, tidak perlu isi ulang satu per satu.</p>
+            <div class="flex flex-wrap gap-3 mb-3">
+                <button type="button" onclick="downloadBackup()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">
+                    <i data-lucide="download" class="w-4 h-4"></i> Unduh Backup
+                </button>
+                <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 text-slateDark text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
+                    <i data-lucide="upload" class="w-4 h-4"></i> Pulihkan dari Backup
+                    <input type="file" accept="application/json,.json" class="hidden" onchange="handleRestoreFileSelect(this)">
+                </label>
+            </div>
+            <p id="restore-status" class="hidden-important text-xs rounded-lg px-3 py-2"></p>
+            <p class="text-xs text-slateMuted">Memulihkan backup akan <b>menimpa semua data saat ini</b> (di perangkat ini maupun di server) dengan isi file backup.</p>
+        </div>
+        <div class="inst-card p-6">
+            <div class="mt-0 pt-0">
+                <p class="text-xs font-semibold text-slateDark mb-2">Zona Berbahaya</p>
+                <button onclick="resetAllData()" class="px-4 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors">Reset Semua Konten ke Default</button>
+            </div>
+        </div>
+    `;
+    reInitIcons();
+    loadAdminUsersList();
+}
+
+/* =========================================================================
+   KELOLA PENGGUNA ADMIN — daftar, tambah, hapus akun admin lain.
+========================================================================= */
+async function loadAdminUsersList() {
+    const el = document.getElementById('admin-users-list');
+    if (!el) return;
+    el.innerHTML = `<p class="text-xs text-slateMuted">Memuat daftar admin...</p>`;
+    try {
+        const res = await fetch('/api/admin/users', { credentials: 'same-origin' });
+        if (res.status === 401) {
+            window.location.replace('/login.html');
+            return;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const body = await res.json();
+        renderAdminUsersList(body.users || [], body.currentUsername || currentAdminUsername);
+    } catch (err) {
+        el.innerHTML = `<p class="text-xs text-red-600">Gagal memuat daftar admin.</p>`;
+    }
+}
+
+function renderAdminUsersList(users, currentUsername) {
+    const el = document.getElementById('admin-users-list');
+    if (!el) return;
+    if (!users.length) {
+        el.innerHTML = `<p class="text-xs text-slateMuted">Belum ada data.</p>`;
+        return;
+    }
+    el.innerHTML = users.map(u => `
+        <div class="flex items-center justify-between px-4 py-2.5 rounded-lg border border-slate-200">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">${escapeHtml(u.username.charAt(0).toUpperCase())}</div>
+                <span class="text-sm font-medium text-slateDark">${escapeHtml(u.username)}</span>
+                ${u.username === currentUsername ? '<span class="text-xs text-slateMuted">(Anda)</span>' : ''}
+            </div>
+            ${u.username === currentUsername
+                ? ''
+                : `<button type="button" onclick="deleteAdminUser('${escapeHtml(u.username).replace(/'/g, "\\'")}')" class="text-xs text-red-600 hover:underline">Hapus</button>`
+            }
+        </div>
+    `).join('');
+    reInitIcons();
+}
+
+async function addAdminUser() {
+    const errorEl = document.getElementById('add-admin-error');
+    errorEl.classList.add('hidden-important');
+    const username = document.getElementById('f-new-admin-username').value.trim();
+    const password = document.getElementById('f-new-admin-password').value;
+    try {
+        const res = await fetch('/api/admin/users', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (res.status === 401) {
+            window.location.replace('/login.html');
+            return;
+        }
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            errorEl.textContent = body.error || 'Gagal menambah admin.';
+            errorEl.classList.remove('hidden-important');
+            return;
+        }
+        document.getElementById('add-admin-form').reset();
+        showToast('Admin baru berhasil ditambahkan.');
+        loadAdminUsersList();
+    } catch (err) {
+        errorEl.textContent = 'Tidak bisa menghubungi server.';
+        errorEl.classList.remove('hidden-important');
+    }
+}
+
+function deleteAdminUser(username) {
+    openConfirmModal(
+        `Hapus akun admin "${username}"? Akun ini akan langsung ter-logout di semua perangkat dan tidak bisa login lagi.`,
+        async () => {
+            try {
+                const res = await fetch('/api/admin/users/delete', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                if (res.status === 401) {
+                    window.location.replace('/login.html');
+                    return;
+                }
+                if (!res.ok) {
+                    const body = await res.json().catch(() => ({}));
+                    showToast(body.error || 'Gagal menghapus admin.', 'error');
+                    return;
+                }
+                showToast('Admin berhasil dihapus.');
+                loadAdminUsersList();
+            } catch (err) {
+                showToast('Tidak bisa menghubungi server.', 'error');
+            }
+        }
+    );
+}
+
+/* =========================================================================
+   BACKUP & RESTORE — ekspor/impor seluruh isi DB sebagai file .json.
+   Kredensial admin tidak pernah ikut (memang sudah tidak disimpan di DB
+   sejak versi login-server), jadi file backup aman dibagikan/disimpan.
+========================================================================= */
+function downloadBackup() {
+    syncCustomPagesIntoOrder(DB);
+    const payload = {
+        __backup: 'sdn01papahan',
+        __exportedAt: new Date().toISOString(),
+        data: DB
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const tanggal = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `backup-sdn01papahan-${tanggal}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Backup berhasil diunduh.');
+}
+
+function handleRestoreFileSelect(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById('restore-status');
+    const reader = new FileReader();
+    reader.onload = () => {
+        let parsed;
+        try {
+            parsed = JSON.parse(reader.result);
+        } catch (e) {
+            statusEl.textContent = 'File bukan JSON yang valid.';
+            statusEl.className = 'text-xs rounded-lg px-3 py-2 bg-red-50 text-red-600 border border-red-100';
+            return;
+        }
+        // Terima dua bentuk: hasil "Unduh Backup" ({ __backup, data }) atau
+        // file JSON mentah objek DB itu sendiri.
+        const incoming = (parsed && typeof parsed === 'object' && parsed.__backup === 'sdn01papahan' && parsed.data)
+            ? parsed.data
+            : parsed;
+        if (!incoming || typeof incoming !== 'object' || !incoming.meta) {
+            statusEl.textContent = 'Isi file tidak dikenali sebagai backup dashboard ini.';
+            statusEl.className = 'text-xs rounded-lg px-3 py-2 bg-red-50 text-red-600 border border-red-100';
+            statusEl.classList.remove('hidden-important');
+            input.value = '';
+            return;
+        }
+        openConfirmModal(
+            'Semua data saat ini (berita, galeri, halaman, dll) akan DIGANTI dengan isi file backup ini. Tindakan ini tidak bisa dibatalkan. Lanjutkan?',
+            () => restoreFromBackupData(incoming)
+        );
+        input.value = '';
+    };
+    reader.onerror = () => {
+        statusEl.textContent = 'Gagal membaca file.';
+        statusEl.className = 'text-xs rounded-lg px-3 py-2 bg-red-50 text-red-600 border border-red-100';
+        statusEl.classList.remove('hidden-important');
+    };
+    reader.readAsText(file);
+}
+
+function restoreFromBackupData(incoming) {
+    // Jaring pengaman: field kredensial (kalau ada di file backup lama) tidak
+    // pernah ikut dipulihkan.
+    if (incoming && typeof incoming === 'object' && 'admin' in incoming) delete incoming.admin;
+
+    DB = migrateDB(Object.assign({}, DEFAULT_DB, incoming));
+    saveDB();
+
+    const statusEl = document.getElementById('restore-status');
+    if (statusEl) {
+        statusEl.textContent = 'Data berhasil dipulihkan dan sedang disinkronkan ke server.';
+        statusEl.className = 'text-xs rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100';
+        statusEl.classList.remove('hidden-important');
+    }
+    showToast('Backup berhasil dipulihkan.');
+    showAdminPanel(typeof currentPanel !== 'undefined' ? currentPanel : 'overview');
+}
+
+async function handleLogoFileSelect(fileInputEl) {
+    const file = fileInputEl.files && fileInputEl.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('File yang dipilih bukan gambar.', 'error');
+        fileInputEl.value = '';
+        return;
+    }
+    try {
+        const p = IMAGE_UPLOAD_PRESETS.logo;
+        const dataUrl = await resizeImageFile(file, p.maxWidth, p.quality, p.sizeLimit);
+        document.getElementById('f-meta-logo-image').value = dataUrl;
+        updateMetaLogoPreview();
+        showToast('Foto logo berhasil diunggah — klik "Simpan Logo" untuk menerapkannya.');
+    } catch (err) {
+        handleImageUploadError(err);
+    } finally {
+        fileInputEl.value = '';
+    }
+}
+
+function updateMetaLogoPreview() {
+    const url = (document.getElementById('f-meta-logo-image').value || '').trim();
+    const text = (document.getElementById('f-meta-logo-text').value || '').trim() || 'S1';
+    document.getElementById('meta-logo-preview-box').innerHTML = url
+        ? `<img src="${escapeHtml(url)}" class="w-full h-full object-cover">`
+        : escapeHtml(text);
+}
+
+function clearMetaLogoImage() {
+    document.getElementById('f-meta-logo-image').value = '';
+    updateMetaLogoPreview();
+}
+
+function saveMetaLogoForm() {
+    DB.meta.logoImage = (document.getElementById('f-meta-logo-image').value || '').trim();
+    DB.meta.logoText = (document.getElementById('f-meta-logo-text').value || '').trim() || 'S1';
+    DB.meta.schoolName = (document.getElementById('f-meta-school-name').value || '').trim() || 'SDN 01 Papahan';
+    DB.meta.schoolLocation = (document.getElementById('f-meta-school-location').value || '').trim();
+    saveDB();
+    renderPanelPengaturan();
+    showToast('Identitas website berhasil disimpan.');
+}
+
+async function savePengaturanForm() {
+    const errorEl = document.getElementById('pengaturan-error');
+    errorEl.classList.add('hidden-important');
+    const currentPassword = document.getElementById('f-set-current-password').value;
+    const newPassword = document.getElementById('f-set-password').value;
+    try {
+        const res = await fetch('/api/admin/change-password', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        if (res.status === 401) {
+            showToast('Sesi berakhir, silakan masuk lagi.', 'error');
+            setTimeout(() => window.location.replace('/login.html'), 1000);
+            return;
+        }
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            errorEl.textContent = body.error || 'Gagal mengubah password.';
+            errorEl.classList.remove('hidden-important');
+            return;
+        }
+        document.getElementById('pengaturan-form').reset();
+        showToast('Password admin berhasil diperbarui.');
+    } catch (err) {
+        errorEl.textContent = 'Tidak bisa menghubungi server.';
+        errorEl.classList.remove('hidden-important');
+    }
+}
+function resetAllData() {
+    openConfirmModal('Semua konten akan dikembalikan ke pengaturan awal.', () => {
+        DB = JSON.parse(JSON.stringify(DEFAULT_DB));
+        saveDB();
+        buildAdminNav();
+        showAdminPanel('overview');
+        showToast('Semua konten telah direset ke default.');
+    });
+}
+
+/* =========================================================================
+   ADMIN — Generic CRUD list + modal (program, guru, prestasi, ekskul,
+   berita, agenda, galeri, faq)
+========================================================================= */
+const SECTION_CONFIG = {
+    program: {
+        title: 'Data Program', itemLabel: 'Program',
+        fields: [
+            { key: 'icon', label: 'Nama Icon (Lucide, mis: book-open)', type: 'text' },
+            { key: 'color', label: 'Warna Aksen', type: 'select', options: ['primary','indigo','emerald','amber','rose','sky'] },
+            { key: 'title', label: 'Judul Program', type: 'text' },
+            { key: 'desc', label: 'Deskripsi', type: 'textarea' }
+        ],
+        columns: [ { key: 'title', label: 'Judul' }, { key: 'desc', label: 'Deskripsi' } ]
+    },
+    guru: {
+        title: 'Data Guru', itemLabel: 'Guru',
+        fields: [
+            { key: 'photo', label: 'Foto (opsional — kosongkan untuk avatar inisial otomatis)', type: 'image', preset: 'face' },
+            { key: 'name', label: 'Nama Lengkap', type: 'text' },
+            { key: 'role', label: 'Jabatan / Mata Pelajaran', type: 'text' },
+            { key: 'experience', label: 'Pengalaman (mis: 20 Tahun Pengalaman)', type: 'text' },
+            { key: 'education', label: 'Pendidikan Terakhir (mis: S3 Pendidikan)', type: 'text' },
+            { key: 'isKepsek', label: 'Tampilkan sebagai Kepala Sekolah', type: 'checkbox' }
+        ],
+        columns: [ { key: 'name', label: 'Nama' }, { key: 'role', label: 'Jabatan' }, { key: 'experience', label: 'Pengalaman' } ]
+    },
+    prestasi: {
+        title: 'Data Prestasi', itemLabel: 'Prestasi',
+        fields: [
+            { key: 'photo', label: 'Foto Prestasi (foto/banner kegiatan)', type: 'image' },
+            { key: 'title', label: 'Judul (mis: Karanganyar Futsal League)', type: 'text' },
+            { key: 'date', label: 'Tanggal (mis: 24 Mei 2026)', type: 'text' },
+            { key: 'studentName', label: 'Nama Siswa (opsional)', type: 'text' },
+            { key: 'badge', label: 'Label Badge di Foto', type: 'text' }
+        ],
+        columns: [ { key: 'title', label: 'Judul' }, { key: 'date', label: 'Tanggal' }, { key: 'studentName', label: 'Nama Siswa' } ]
+    },
+    ekskul: {
+        title: 'Data Ekstrakurikuler', itemLabel: 'Ekstrakurikuler',
+        fields: [
+            { key: 'icon', label: 'Nama Icon (Lucide, mis: tent)', type: 'text' },
+            { key: 'color', label: 'Warna', type: 'select', options: ['orange','blue','red','emerald','indigo','amber'] },
+            { key: 'name', label: 'Nama Ekskul', type: 'text' },
+            { key: 'status', label: 'Status', type: 'text' }
+        ],
+        columns: [ { key: 'name', label: 'Nama' }, { key: 'status', label: 'Status' } ]
+    },
+    berita: {
+        title: 'Data Berita', itemLabel: 'Berita',
+        fields: [
+            { key: 'date', label: 'Tanggal', type: 'text' },
+            { key: 'author', label: 'Penulis', type: 'text' },
+            { key: 'category', label: 'Kategori (mis: Kegiatan, Prestasi, Pengumuman)', type: 'text' },
+            { key: 'title', label: 'Judul Berita', type: 'text' },
+            { key: 'excerpt', label: 'Cuplikan Berita (tampil di daftar & kartu berita)', type: 'textarea' },
+            { key: 'content', label: 'Isi Lengkap Berita (pisahkan paragraf dengan baris kosong)', type: 'textarea', rows: 8 },
+            { key: 'tags', label: 'Tags (pisahkan dengan koma, mis: kegiatan, bakti-sosial)', type: 'text' }
+        ],
+        columns: [ { key: 'title', label: 'Judul' }, { key: 'category', label: 'Kategori' }, { key: 'date', label: 'Tanggal' } ]
+    },
+    agenda: {
+        title: 'Data Agenda', itemLabel: 'Agenda',
+        fields: [
+            { key: 'month', label: 'Bulan (3 huruf, mis: Agu)', type: 'text' },
+            { key: 'day', label: 'Tanggal', type: 'text' },
+            { key: 'title', label: 'Judul Kegiatan', type: 'text' },
+            { key: 'time', label: 'Waktu', type: 'text' },
+            { key: 'location', label: 'Lokasi', type: 'text' }
+        ],
+        columns: [ { key: 'title', label: 'Kegiatan' }, { key: 'day', label: 'Tgl' }, { key: 'month', label: 'Bulan' } ]
+    },
+    galeri: {
+        title: 'Data Galeri', itemLabel: 'Foto',
+        fields: [
+            { key: 'image', label: 'Gambar', type: 'image' },
+            { key: 'caption', label: 'Keterangan', type: 'text' }
+        ],
+        columns: [ { key: 'caption', label: 'Keterangan' } ]
+    },
+    testimoni: {
+        title: 'Data Testimoni', itemLabel: 'Testimoni',
+        fields: [
+            { key: 'photo', label: 'Foto (opsional — kosongkan untuk avatar default)', type: 'image', preset: 'face' },
+            { key: 'name', label: 'Nama', type: 'text' },
+            { key: 'role', label: 'Peran / Status (mis: Wali Murid Kelas IV)', type: 'text' },
+            { key: 'quote', label: 'Isi Testimoni', type: 'textarea' }
+        ],
+        columns: [ { key: 'name', label: 'Nama' }, { key: 'role', label: 'Peran' } ]
+    },
+    faq: {
+        title: 'Data FAQ', itemLabel: 'FAQ',
+        fields: [
+            { key: 'q', label: 'Pertanyaan', type: 'text' },
+            { key: 'a', label: 'Jawaban', type: 'textarea' }
+        ],
+        columns: [ { key: 'q', label: 'Pertanyaan' } ]
+    }
+};
+
+function crudTableHtml(sectionKey, subtitle) {
+    const cfg = SECTION_CONFIG[sectionKey];
+    const items = DB[sectionKey] || [];
+    const cols = cfg.columns;
+    const imageField = cfg.fields.find(f => f.type === 'image');
+    const totalCols = cols.length + (imageField ? 1 : 0) + 1;
+    return `
+        <div class="inst-card overflow-hidden">
+            <div class="flex items-center justify-between p-5 border-b border-borderLight">
+                <p class="text-sm text-slateMuted">${subtitle}</p>
+                <button onclick="openItemModal('${sectionKey}', null)" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Tambah ${cfg.itemLabel}
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm table-fixed">
+                    <thead>
+                        <tr class="bg-slate-50 text-left text-xs text-slateMuted uppercase tracking-wide">
+                            ${imageField ? `<th class="px-5 py-3 font-semibold w-20">Foto</th>` : ''}
+                            ${cols.map((c, i) => `<th class="px-5 py-3 font-semibold ${i === 0 ? 'w-auto' : 'w-40'}">${c.label}</th>`).join('')}
+                            <th class="px-5 py-3 font-semibold text-right w-28">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-borderLight">
+                        ${items.length === 0 ? `<tr><td colspan="${totalCols}" class="px-5 py-8 text-center text-slateMuted">Belum ada data. Klik "Tambah ${cfg.itemLabel}" untuk menambahkan.</td></tr>` : ''}
+                        ${items.map((item, idx) => `
+                            <tr class="hover:bg-slate-50">
+                                ${imageField ? (String(item[imageField.key] || '').trim()
+                                    ? `<td class="px-5 py-3"><img src="${escapeHtml(String(item[imageField.key]))}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50"></td>`
+                                    : `<td class="px-5 py-3"><div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slateMuted">${escapeHtml(String(item[cols[0].key] || '?').trim().charAt(0).toUpperCase())}</div></td>`
+                                ) : ''}
+                                ${cols.map(c => `<td class="px-5 py-3 text-slateDark truncate">${escapeHtml(String(item[c.key] ?? ''))}</td>`).join('')}
+                                <td class="px-5 py-3 text-right whitespace-nowrap">
+                                    <button onclick="openItemModal('${sectionKey}', ${idx})" class="p-2 text-slateMuted hover:text-primary hover:bg-blue-50 rounded-lg transition"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                                    <button onclick="requestDeleteItem('${sectionKey}', ${idx})" class="p-2 text-slateMuted hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderPanelCrudList(sectionKey, subtitle) {
+    document.getElementById('admin-panel-content').innerHTML = crudTableHtml(sectionKey, subtitle);
+}
+
+/* =========================================================================
+   ADMIN — Panel: Program Unggulan (teks halaman + daftar program)
+========================================================================= */
+function renderPanelProgram() {
+    const h = DB.programHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="program-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveProgramHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Label Kecil (Eyebrow)</label>
+                    <input type="text" id="f-program-eyebrow" value="${escapeHtml(h.eyebrow)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Judul</label>
+                    <input type="text" id="f-program-title" value="${escapeHtml(h.title)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Subjudul / Deskripsi</label>
+                    <textarea id="f-program-subtitle" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml(h.subtitle)}</textarea>
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('program', 'Kelola kartu Program Unggulan yang tampil di halaman publik.')}
+    `;
+    reInitIcons();
+}
+
+function saveProgramHeaderForm() {
+    const h = DB.programHeader;
+    h.eyebrow = document.getElementById('f-program-eyebrow').value;
+    h.title = document.getElementById('f-program-title').value;
+    h.subtitle = document.getElementById('f-program-subtitle').value;
+    saveDB();
+    showToast('Teks halaman Program Unggulan berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Ekstrakurikuler (teks halaman + daftar ekskul)
+========================================================================= */
+function renderPanelEkskul() {
+    const h = DB.ekskulHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="ekskul-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveEkskulHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Judul</label>
+                    <input type="text" id="f-ekskul-title" value="${escapeHtml(h.title)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Subjudul / Deskripsi</label>
+                    <input type="text" id="f-ekskul-subtitle" value="${escapeHtml(h.subtitle)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('ekskul', 'Kelola daftar kegiatan ekstrakurikuler.')}
+    `;
+    reInitIcons();
+}
+
+function saveEkskulHeaderForm() {
+    const h = DB.ekskulHeader;
+    h.title = document.getElementById('f-ekskul-title').value;
+    h.subtitle = document.getElementById('f-ekskul-subtitle').value;
+    saveDB();
+    showToast('Teks halaman Ekstrakurikuler berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Berita (teks halaman + daftar berita)
+========================================================================= */
+function renderPanelBerita() {
+    const h = DB.beritaHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="berita-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveBeritaHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Label Kecil (Eyebrow)</label>
+                    <input type="text" id="f-berita-eyebrow" value="${escapeHtml(h.eyebrow)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (awal)</label>
+                        <input type="text" id="f-berita-title-prefix" value="${escapeHtml(h.titlePrefix)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (highlight)</label>
+                        <input type="text" id="f-berita-title-highlight" value="${escapeHtml(h.titleHighlight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (lanjutan)</label>
+                        <input type="text" id="f-berita-title-light" value="${escapeHtml(h.titleLight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Subjudul / Deskripsi</label>
+                    <textarea id="f-berita-subtitle" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml(h.subtitle)}</textarea>
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('berita', 'Kelola artikel berita & pengumuman sekolah.')}
+    `;
+    reInitIcons();
+}
+
+function saveBeritaHeaderForm() {
+    const h = DB.beritaHeader;
+    h.eyebrow = document.getElementById('f-berita-eyebrow').value;
+    h.titlePrefix = document.getElementById('f-berita-title-prefix').value;
+    h.titleHighlight = document.getElementById('f-berita-title-highlight').value;
+    h.titleLight = document.getElementById('f-berita-title-light').value;
+    h.subtitle = document.getElementById('f-berita-subtitle').value;
+    saveDB();
+    showToast('Teks halaman Berita berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Agenda (teks halaman + daftar agenda)
+========================================================================= */
+function renderPanelAgenda() {
+    const h = DB.agendaHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="agenda-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveAgendaHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Judul</label>
+                    <input type="text" id="f-agenda-title" value="${escapeHtml(h.title)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('agenda', 'Kelola jadwal agenda/kegiatan mendatang.')}
+    `;
+    reInitIcons();
+}
+
+function saveAgendaHeaderForm() {
+    const h = DB.agendaHeader;
+    h.title = document.getElementById('f-agenda-title').value;
+    saveDB();
+    showToast('Teks halaman Agenda berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Galeri (teks halaman + daftar foto)
+========================================================================= */
+function renderPanelGaleri() {
+    const h = DB.galeriHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="galeri-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveGaleriHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Judul</label>
+                    <input type="text" id="f-galeri-title" value="${escapeHtml(h.title)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('galeri', 'Kelola foto galeri kegiatan sekolah.')}
+    `;
+    reInitIcons();
+}
+
+function saveGaleriHeaderForm() {
+    const h = DB.galeriHeader;
+    h.title = document.getElementById('f-galeri-title').value;
+    saveDB();
+    showToast('Teks halaman Galeri berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Tenaga Pendidik (teks halaman + daftar guru)
+========================================================================= */
+function renderPanelGuru() {
+    const h = DB.guruHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="guru-header-form" class="space-y-4" onsubmit="event.preventDefault(); saveGuruHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Label Kecil (Eyebrow)</label>
+                    <input type="text" id="f-guru-eyebrow" value="${escapeHtml(h.eyebrow)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (awal)</label>
+                        <input type="text" id="f-guru-title-prefix" value="${escapeHtml(h.titlePrefix)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (highlight)</label>
+                        <input type="text" id="f-guru-title-highlight" value="${escapeHtml(h.titleHighlight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Subjudul / Deskripsi</label>
+                    <textarea id="f-guru-subtitle" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml(h.subtitle)}</textarea>
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('guru', 'Kelola direktori tenaga pendidik yang tampil di halaman publik.')}
+    `;
+    reInitIcons();
+}
+
+function saveGuruHeaderForm() {
+    const h = DB.guruHeader;
+    h.eyebrow = document.getElementById('f-guru-eyebrow').value;
+    h.titlePrefix = document.getElementById('f-guru-title-prefix').value;
+    h.titleHighlight = document.getElementById('f-guru-title-highlight').value;
+    h.subtitle = document.getElementById('f-guru-subtitle').value;
+    saveDB();
+    showToast('Teks halaman Tenaga Pendidik berhasil disimpan.');
+}
+
+/* =========================================================================
+   ADMIN — Panel: Prestasi (teks halaman + daftar prestasi)
+========================================================================= */
+function renderPanelPrestasi() {
+    const h = DB.prestasiHeader;
+    document.getElementById('admin-panel-content').innerHTML = `
+        <div class="inst-card p-6 mb-6">
+            <p class="text-sm font-semibold text-slateDark mb-4">Teks Halaman (tampil di beranda)</p>
+            <form id="prestasi-header-form" class="space-y-4" onsubmit="event.preventDefault(); savePrestasiHeaderForm();">
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Label Kecil (Eyebrow)</label>
+                    <input type="text" id="f-prestasi-eyebrow" value="${escapeHtml(h.eyebrow)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (awal)</label>
+                        <input type="text" id="f-prestasi-title-prefix" value="${escapeHtml(h.titlePrefix)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (highlight)</label>
+                        <input type="text" id="f-prestasi-title-highlight" value="${escapeHtml(h.titleHighlight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slateDark mb-1">Judul (lanjutan)</label>
+                        <input type="text" id="f-prestasi-title-light" value="${escapeHtml(h.titleLight)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slateDark mb-1">Subjudul / Deskripsi</label>
+                    <textarea id="f-prestasi-subtitle" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">${escapeHtml(h.subtitle)}</textarea>
+                </div>
+                <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primaryHover transition-colors shadow-soft">Simpan Teks Halaman</button>
+            </form>
+        </div>
+        ${crudTableHtml('prestasi', 'Kelola daftar prestasi & penghargaan sekolah, termasuk foto siswa.')}
+    `;
+    reInitIcons();
+}
+
+function savePrestasiHeaderForm() {
+    const h = DB.prestasiHeader;
+    h.eyebrow = document.getElementById('f-prestasi-eyebrow').value;
+    h.titlePrefix = document.getElementById('f-prestasi-title-prefix').value;
+    h.titleHighlight = document.getElementById('f-prestasi-title-highlight').value;
+    h.titleLight = document.getElementById('f-prestasi-title-light').value;
+    h.subtitle = document.getElementById('f-prestasi-subtitle').value;
+    saveDB();
+    showToast('Teks halaman Prestasi berhasil disimpan.');
+}
+
+let itemModalContext = { sectionKey: null, index: null };
+
+function openItemModal(sectionKey, index) {
+    const cfg = SECTION_CONFIG[sectionKey];
+    itemModalContext = { sectionKey, index };
+    const isEdit = index !== null;
+    const data = isEdit ? DB[sectionKey][index] : {};
+
+    document.getElementById('item-modal-title').textContent = (isEdit ? 'Edit ' : 'Tambah ') + cfg.itemLabel;
+    document.getElementById('item-modal-subtitle').textContent = isEdit ? 'Perbarui data lalu simpan.' : 'Lengkapi data baru lalu simpan.';
+
+    document.getElementById('item-modal-fields').innerHTML = cfg.fields.map(f => {
+        const val = data[f.key] !== undefined ? data[f.key] : '';
+        if (f.type === 'textarea') {
+            return `<div><label class="block text-xs font-semibold text-slateDark mb-1">${f.label}</label>
+                <textarea id="mf-${f.key}" rows="${f.rows || 3}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm">${escapeHtml(val)}</textarea></div>`;
+        }
+        if (f.type === 'select') {
+            return `<div><label class="block text-xs font-semibold text-slateDark mb-1">${f.label}</label>
+                <select id="mf-${f.key}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm bg-white">
+                    ${f.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select></div>`;
+        }
+        if (f.type === 'checkbox') {
+            return `<div class="flex items-center gap-2">
+                <input type="checkbox" id="mf-${f.key}" ${val ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/30">
+                <label for="mf-${f.key}" class="text-sm text-slateDark">${f.label}</label></div>`;
+        }
+        if (f.type === 'image') {
+            return `<div>
+                <label class="block text-xs font-semibold text-slateDark mb-1">${f.label}</label>
+                <div class="flex items-center gap-3 mb-2">
+                    <img id="mf-preview-${f.key}" src="${escapeHtml(val)}" class="w-16 h-16 rounded-lg object-cover border border-slate-200 bg-slate-50">
+                    <label class="flex-1 cursor-pointer">
+                        <div class="px-3 py-2.5 rounded-lg border border-dashed border-slate-300 text-xs text-slateMuted hover:border-primary hover:text-primary transition text-center">
+                            <i data-lucide="upload" class="w-4 h-4 inline mb-0.5"></i> Klik untuk unggah foto dari perangkat
+                        </div>
+                        <input type="file" accept="image/*" class="hidden" onchange="handleImageFileSelect(this, 'mf-${f.key}', 'mf-preview-${f.key}', '${f.preset || 'banner'}')">
+                    </label>
+                </div>
+                <input type="text" id="mf-${f.key}" value="${escapeHtml(val)}" oninput="normalizeImageUrlInput(this); document.getElementById('mf-preview-${f.key}').src=this.value" placeholder="atau tempel URL gambar / link Google Drive" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-xs text-slateMuted"></div>`;
+        }
+        return `<div><label class="block text-xs font-semibold text-slateDark mb-1">${f.label}</label>
+            <input type="text" id="mf-${f.key}" value="${escapeHtml(val)}" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm"></div>`;
+    }).join('');
+
+    document.getElementById('item-modal').classList.remove('hidden-important');
+    document.getElementById('item-modal').classList.add('flex');
+    reInitIcons();
+}
+
+function closeItemModal() {
+    document.getElementById('item-modal').classList.add('hidden-important');
+    document.getElementById('item-modal').classList.remove('flex');
+    itemModalContext = { sectionKey: null, index: null };
+}
+
+function saveItemModal() {
+    const { sectionKey, index } = itemModalContext;
+    const cfg = SECTION_CONFIG[sectionKey];
+    // Mulai dari data lama (jika edit) supaya field di luar form (mis: id) tidak hilang.
+    const newItem = index !== null ? Object.assign({}, DB[sectionKey][index]) : {};
+    cfg.fields.forEach(f => {
+        const el = document.getElementById('mf-' + f.key);
+        if (f.type === 'checkbox') {
+            newItem[f.key] = el.checked;
+        } else {
+            newItem[f.key] = el.value;
+        }
+    });
+    if (sectionKey === 'berita' && !newItem.id) {
+        newItem.id = 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    }
+
+    if (index === null) {
+        DB[sectionKey].push(newItem);
+    } else {
+        DB[sectionKey][index] = newItem;
+    }
+    saveDB();
+    closeItemModal();
+    renderPanelCrudList(sectionKey, SECTION_CONFIG[sectionKey].title);
+    showAdminPanel(sectionKey);
+    showToast('Data ' + cfg.itemLabel.toLowerCase() + ' berhasil disimpan.');
+}
+
+let confirmModalAction = null;
+function openConfirmModal(message, onConfirm) {
+    document.querySelector('#confirm-modal p.text-sm').textContent = message;
+    confirmModalAction = onConfirm;
+    document.getElementById('confirm-modal').classList.remove('hidden-important');
+    document.getElementById('confirm-modal').classList.add('flex');
+    document.getElementById('confirm-modal-btn').onclick = () => {
+        if (confirmModalAction) confirmModalAction();
+        closeConfirmModal();
+    };
+}
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.add('hidden-important');
+    document.getElementById('confirm-modal').classList.remove('flex');
+    confirmModalAction = null;
+}
+
+function requestDeleteItem(sectionKey, index) {
+    openConfirmModal('Data ini akan dihapus secara permanen dari website.', () => {
+        const removed = DB[sectionKey][index];
+        if (sectionKey === 'berita' && removed && removed.id && DB.beritaComments) {
+            delete DB.beritaComments[removed.id];
+        }
+        DB[sectionKey].splice(index, 1);
+        saveDB();
+        showAdminPanel(sectionKey);
+        showToast('Data berhasil dihapus.');
+    });
+}
+
+/* =========================================================================
+   INIT (Dashboard Admin) — HARUS lolos verifikasi sesi server dulu
+   sebelum menampilkan apa pun. Kalau tidak valid, sudah dialihkan ke
+   /login.html oleh verifySessionOrRedirect().
+========================================================================= */
+document.addEventListener('DOMContentLoaded', async () => {
+    const ok = await verifySessionOrRedirect();
+    if (!ok) return;
+
+    enterAdminMode();
+    reInitIcons();
+    pullFromCloud();
+});
+</script>
+</body>
+</html>
