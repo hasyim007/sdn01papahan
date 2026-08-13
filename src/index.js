@@ -1,58 +1,37 @@
 /**
  * Worker API untuk situs SDN 01 Papahan.
  *
- * Endpoint publik (tanpa auth):
- *   GET  /api/data   -> baca seluruh data situs (konten publik, TIDAK PERNAH
- *                        berisi kredensial admin — itu di tabel terpisah).
- *
- * Endpoint auth:
- *   POST /api/login   -> { username, password } -> set-cookie sesi HttpOnly
- *                         (dilindungi rate-limit per-IP + penguncian akun,
- *                         lihat bagian "V3 - PROTEKSI LOGIN" di bawah)
- *   GET  /api/session -> cek apakah cookie sesi yang dikirim browser valid,
- *                         + status forcePasswordChange
- *   POST /api/logout  -> hapus sesi saat ini
- *
- * Endpoint khusus admin (WAJIB cookie sesi valid):
- *   PUT  /api/data                  -> simpan seluruh data situs
- *                                       (ditolak kalau forcePasswordChange)
- *   POST /api/admin/change-password -> ganti password admin (SELALU boleh,
- *                                       supaya admin bisa keluar dari mode
- *                                       "wajib ganti password")
- *   GET  /api/admin/users           -> daftar akun admin
- *   POST /api/admin/users           -> tambah akun admin (ditolak kalau
- *                                       forcePasswordChange)
- *   POST /api/admin/users/delete    -> hapus akun admin (ditolak kalau
- *                                       forcePasswordChange)
- *   GET  /api/admin/security-log    -> 50 percobaan login terakhir (untuk
- *                                       menu "Log Keamanan" di admin.html)
- *
- * Proteksi halaman /admin.html itu sendiri (agar dashboard TIDAK dikirim
- * ke browser yang belum login) diatur lewat `run_worker_first` di
- * wrangler.toml, ditangani di bagian "GERBANG HALAMAN ADMIN" di bawah.
- *
  * =========================================================================
- * V3 - PROTEKSI LOGIN (rate-limit, penguncian akun, wajib ganti password)
+ * PERUBAHAN BESAR (Agustus 2026) — migrasi dari satu blob JSON (site_data)
+ * ke skema per-tabel di D1, untuk menghilangkan error "D1_ERROR: string or
+ * blob too big: SQLITE_TOOBIG" secara permanen.
+ *
+ * PENTING: bentuk data yang dikirim/diterima oleh GET dan PUT /api/data
+ * TIDAK BERUBAH SAMA SEKALI dari sudut pandang admin.html maupun situs
+ * publik — keduanya tetap bekerja dengan objek DB yang sama persis seperti
+ * sebelumnya. Yang berubah murni cara Worker ini menyimpannya di D1: bukan
+ * satu kolom JSON raksasa lagi, tapi banyak baris kecil per section/item.
+ *
+ * GET /api/data  -> membaca dari banyak tabel, MENYUSUN ULANG jadi satu
+ *                   objek JSON dengan bentuk sama seperti sebelumnya.
+ * PUT /api/data  -> menerima body JSON besar seperti sebelumnya, lalu
+ *                   MEMECAHNYA jadi banyak query kecil dijalankan sekaligus
+ *                   lewat env.DB.batch() (transaksi atomik — semua berhasil
+ *                   atau semua gagal bersama).
+ *
+ * PENGECUALIAN: field `beritaComments` SENGAJA TIDAK ikut ditimpa oleh PUT
+ * /api/data. Field ini tumbuh dari komentar publik (lewat endpoint
+ * /api/public/berita/:slug/comments — lihat fungsi handlePublicComment di
+ * bawah), bukan dari form admin, jadi tidak boleh diperlakukan sebagai
+ * "replace all" tiap kali admin menyimpan section lain yang tidak
+ * berhubungan (kalau ikut ditimpa, komentar asli bisa hilang tertimpa data
+ * lama dari sesi admin.html yang browsernya belum di-refresh).
+ *
+ * MIGRASI DATA LAMA: lihat endpoint khusus admin
+ * POST /api/admin/migrate-to-tables di bagian bawah file ini. Jalankan
+ * SEKALI SAJA setelah schema_tambahan.sql dieksekusi dan worker ini
+ * dideploy. Baca komentar di endpoint tersebut untuk detail keamanannya.
  * =========================================================================
- * - Setiap percobaan login (berhasil/gagal) dicatat ke tabel
- *   `login_attempts` beserta alamat IP pengakses.
- * - Rate-limit PER-IP: kalau satu IP gagal login >= IP_RATE_LIMIT_MAX kali
- *   dalam IP_RATE_LIMIT_WINDOW_MS terakhir (lintas username, jadi tidak
- *   bisa dielakkan dengan mencoba banyak username berbeda), permintaan
- *   ditolak 429 tanpa perlu mengecek password sama sekali.
- * - Penguncian PER-USERNAME: kalau satu username gagal login
- *   MAX_FAILED_ATTEMPTS kali berturut-turut, username itu dikunci selama
- *   LOCKOUT_DURATION_MS. Ini melindungi dari brute-force yang fokus ke satu
- *   akun. Catatan jujur: mekanisme ini secara teori bisa disalahgunakan
- *   orang lain untuk mengunci akun admin yang sah (dengan sengaja
- *   memasukkan password salah berulang kali) — makanya durasi kunci dibuat
- *   pendek (15 menit) dan proteksi utama tetap di rate-limit per-IP.
- * - `force_password_change` di tabel admin_users: akun seed awal (username
- *   `admin`, password `admin123`) otomatis bernilai 1, sehingga endpoint
- *   yang mengubah data (PUT /api/data, tambah/hapus admin) akan MENOLAK
- *   permintaan sampai password itu diganti — password default publik yang
- *   "lupa diganti" tidak lagi jadi celah yang bisa dieksploitasi, walau
- *   sesi berhasil login.
  */
 
 const SESSION_COOKIE = 'admin_session';
@@ -63,6 +42,15 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;       // 15 menit
 const IP_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;   // 10 menit
 const IP_RATE_LIMIT_MAX = 20;                     // gagal login per-IP lintas username
 const LOGIN_LOG_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 hari
+
+// Key-key singleton yang disimpan di tabel site_settings (1 baris per key).
+// "hero" disimpan TANPA field "images" -- itu ada di tabel hero_images sendiri.
+const SETTINGS_KEYS = [
+  'meta', 'hero', 'sambutan', 'profil',
+  'programHeader', 'guruHeader', 'prestasiHeader', 'ekskulHeader',
+  'beritaHeader', 'agendaHeader', 'galeriHeader', 'testimoniHeader',
+  'kontak', 'footer', 'pageOrder',
+];
 
 // --------------------------------------------------------------------------
 // Util: hashing password (PBKDF2-HMAC-SHA256 via WebCrypto, tersedia native
@@ -125,9 +113,6 @@ function getClientIp(request) {
   return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
 }
 
-// Sesi + status force_password_change dalam satu query (join ke admin_users)
-// supaya setiap titik yang butuh sesi tahu juga apakah akun itu wajib ganti
-// password dulu, tanpa query tambahan.
 async function getValidSession(request, env) {
   const token = getCookie(request, SESSION_COOKIE);
   if (!token) return null;
@@ -170,22 +155,6 @@ function json(body, status, env, request, extraHeaders) {
   });
 }
 
-// --------------------------------------------------------------------------
-// V3: Content-Security-Policy + header keamanan lain untuk setiap halaman
-// HTML yang dikirim (publik maupun admin). Tidak diterapkan ke aset non-HTML
-// (CSS/JS/gambar) karena header ini hanya relevan untuk dokumen HTML.
-//
-// Catatan jujur: CSP di bawah masih mengizinkan 'unsafe-inline' untuk script
-// & style, karena admin.html/index.html/login.html menaruh banyak logic
-// langsung di tag <script> inline (bukan file terpisah). Idealnya semua JS
-// dipindah ke file eksternal + dipakai CSP nonce/hash supaya 'unsafe-inline'
-// bisa dihapus total — tapi itu perombakan besar di luar cakupan perbaikan
-// ini. Meski begitu, CSP ini tetap berguna: domain yang boleh memuat script
-// dibatasi hanya ke domain yang memang dipakai situs ini (cdn.tailwindcss.com,
-// unpkg.com), jadi skrip asing dari domain lain (mis. lewat CDN pihak ketiga
-// yang disusupi, atau suntikan link <script src="https://evil.com/x.js">)
-// akan diblokir browser.
-// --------------------------------------------------------------------------
 function withSecurityHeaders(response) {
   const contentType = response.headers.get('Content-Type') || '';
   if (!contentType.includes('text/html')) return response;
@@ -218,9 +187,6 @@ function withSecurityHeaders(response) {
   });
 }
 
-// --------------------------------------------------------------------------
-// V3: rate-limit per-IP + penguncian per-username + logging percobaan login
-// --------------------------------------------------------------------------
 async function isIpRateLimited(env, ip) {
   const since = Date.now() - IP_RATE_LIMIT_WINDOW_MS;
   const row = await env.DB.prepare(
@@ -258,13 +224,297 @@ async function recordLoginAttempt(env, username, ip, success) {
   await env.DB.prepare(
     'INSERT INTO login_attempts (username, ip, success, created_at) VALUES (?, ?, ?, ?)'
   ).bind(username, ip, success ? 1 : 0, now).run();
-
-  // Bersih-bersih ringan: ~1 dari 50 request login, buang log lebih dari 30
-  // hari supaya tabel tidak membengkak tanpa perlu cron job terpisah.
   if (Math.random() < 0.02) {
     await env.DB.prepare('DELETE FROM login_attempts WHERE created_at < ?')
       .bind(now - LOGIN_LOG_RETENTION_MS).run();
   }
+}
+
+// =========================================================================
+// ASSEMBLE — baca semua tabel, susun ulang jadi objek DB (bentuk sama
+// persis seperti yang dulu tersimpan di kolom site_data.data).
+// =========================================================================
+async function assembleSiteData(env) {
+  const settingsRes = await env.DB.prepare('SELECT key, data FROM site_settings').all();
+  const settings = {};
+  for (const row of settingsRes.results) {
+    try { settings[row.key] = JSON.parse(row.data); } catch (e) { /* skip korup */ }
+  }
+
+  const heroImagesRes = await env.DB.prepare(
+    'SELECT image_data FROM hero_images ORDER BY sort_order ASC'
+  ).all();
+  const hero = settings.hero || {};
+  hero.images = heroImagesRes.results.map(r => r.image_data);
+
+  const programRes = await env.DB.prepare(
+    'SELECT icon, color, title, desc FROM program ORDER BY sort_order ASC'
+  ).all();
+
+  const guruRes = await env.DB.prepare(
+    'SELECT photo, name, role, experience, education, is_kepsek FROM guru ORDER BY sort_order ASC'
+  ).all();
+  const guru = guruRes.results.map(r => ({
+    photo: r.photo, name: r.name, role: r.role,
+    experience: r.experience, education: r.education,
+    isKepsek: !!r.is_kepsek,
+  }));
+
+  const prestasiRes = await env.DB.prepare(
+    'SELECT photo, badge, date, title, student_name FROM prestasi ORDER BY sort_order ASC'
+  ).all();
+  const prestasi = prestasiRes.results.map(r => ({
+    photo: r.photo, badge: r.badge, date: r.date,
+    title: r.title, studentName: r.student_name,
+  }));
+
+  const ekskulRes = await env.DB.prepare(
+    'SELECT icon, color, name, status FROM ekskul ORDER BY sort_order ASC'
+  ).all();
+
+  const beritaRes = await env.DB.prepare(
+    'SELECT id, date, author, category, title, excerpt, content, tags FROM berita ORDER BY sort_order ASC'
+  ).all();
+
+  // beritaComments: dibaca (bukan bagian dari replace-cycle PUT) -- lihat
+  // catatan besar di atas file ini.
+  const commentsRes = await env.DB.prepare(
+    'SELECT berita_id, name, comment, created_at FROM berita_comments ORDER BY created_at ASC'
+  ).all();
+  const beritaComments = {};
+  for (const row of commentsRes.results) {
+    if (!beritaComments[row.berita_id]) beritaComments[row.berita_id] = [];
+    beritaComments[row.berita_id].push({
+      name: row.name, comment: row.comment, created_at: row.created_at,
+    });
+  }
+
+  const agendaRes = await env.DB.prepare(
+    'SELECT month, day, title, time, location FROM agenda ORDER BY sort_order ASC'
+  ).all();
+
+  const galeriRes = await env.DB.prepare(
+    'SELECT image, caption FROM galeri ORDER BY sort_order ASC'
+  ).all();
+
+  const testimoniRes = await env.DB.prepare(
+    'SELECT quote, name, role, photo FROM testimoni ORDER BY sort_order ASC'
+  ).all();
+
+  const faqRes = await env.DB.prepare(
+    'SELECT q, a FROM faq ORDER BY sort_order ASC'
+  ).all();
+
+  const customSectionsRes = await env.DB.prepare(
+    'SELECT id, type, eyebrow, title, subtitle, bg_style, active, menu_label, image, image_position, columns, cta_label, cta_link FROM custom_sections ORDER BY sort_order ASC'
+  ).all();
+  const customItemsRes = await env.DB.prepare(
+    'SELECT section_id, item_json FROM custom_section_items ORDER BY sort_order ASC'
+  ).all();
+  const itemsBySection = {};
+  for (const row of customItemsRes.results) {
+    if (!itemsBySection[row.section_id]) itemsBySection[row.section_id] = [];
+    try { itemsBySection[row.section_id].push(JSON.parse(row.item_json)); } catch (e) { /* skip korup */ }
+  }
+  const customSections = customSectionsRes.results.map(r => ({
+    id: r.id, type: r.type, eyebrow: r.eyebrow, title: r.title, subtitle: r.subtitle,
+    bgStyle: r.bg_style, active: !!r.active, menuLabel: r.menu_label,
+    image: r.image, imagePosition: r.image_position, columns: r.columns,
+    ctaLabel: r.cta_label, ctaLink: r.cta_link,
+    items: itemsBySection[r.id] || [],
+  }));
+
+  return {
+    meta: settings.meta, hero, sambutan: settings.sambutan, profil: settings.profil,
+    programHeader: settings.programHeader, program: programRes.results,
+    guruHeader: settings.guruHeader, guru,
+    prestasiHeader: settings.prestasiHeader, prestasi,
+    ekskulHeader: settings.ekskulHeader, ekskul: ekskulRes.results,
+    beritaHeader: settings.beritaHeader, berita: beritaRes.results, beritaComments,
+    agendaHeader: settings.agendaHeader, agenda: agendaRes.results,
+    galeriHeader: settings.galeriHeader, galeri: galeriRes.results,
+    testimoniHeader: settings.testimoniHeader, testimoni: testimoniRes.results,
+    faq: faqRes.results,
+    kontak: settings.kontak, footer: settings.footer,
+    pageOrder: settings.pageOrder,
+    customSections,
+  };
+}
+
+// =========================================================================
+// DECOMPOSE — terima objek DB (bentuk sama seperti yang dikirim
+// admin.html), pecah jadi banyak D1 statement, jalankan sebagai satu
+// batch atomik (env.DB.batch). Strategi tiap tabel list: DELETE semua baris
+// section itu, lalu INSERT ulang sesuai array yang baru -- aman karena
+// admin.html SELALU mengirim seluruh array tiap kali Simpan (bukan cuma
+// yang berubah), dan sebagian besar list tidak punya id eksplisit
+// (urutan array = urutan tampil).
+//
+// beritaComments SENGAJA DIABAIKAN di sini -- lihat catatan besar di atas
+// file ini kenapa field itu tidak boleh ikut proses replace-all.
+// =========================================================================
+function buildDecomposeStatements(env, data) {
+  const stmts = [];
+  const now = Date.now();
+
+  // --- site_settings (singleton) ---
+  for (const key of SETTINGS_KEYS) {
+    if (data[key] === undefined) continue;
+    let valueToStore = data[key];
+    if (key === 'hero' && valueToStore && typeof valueToStore === 'object') {
+      // jangan simpan images di sini -- itu di tabel hero_images sendiri.
+      const { images, ...heroWithoutImages } = valueToStore;
+      valueToStore = heroWithoutImages;
+    }
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO site_settings (key, data, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+      ).bind(key, JSON.stringify(valueToStore), now)
+    );
+  }
+
+  // --- hero_images ---
+  if (data.hero && Array.isArray(data.hero.images)) {
+    stmts.push(env.DB.prepare('DELETE FROM hero_images'));
+    data.hero.images.forEach((img, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO hero_images (image_data, sort_order) VALUES (?, ?)')
+          .bind(img, i)
+      );
+    });
+  }
+
+  // --- program ---
+  if (Array.isArray(data.program)) {
+    stmts.push(env.DB.prepare('DELETE FROM program'));
+    data.program.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO program (icon, color, title, desc, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .bind(it.icon || '', it.color || '', it.title || '', it.desc || '', i)
+      );
+    });
+  }
+
+  // --- guru ---
+  if (Array.isArray(data.guru)) {
+    stmts.push(env.DB.prepare('DELETE FROM guru'));
+    data.guru.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare(
+          'INSERT INTO guru (photo, name, role, experience, education, is_kepsek, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(it.photo || '', it.name || '', it.role || '', it.experience || '', it.education || '', it.isKepsek ? 1 : 0, i)
+      );
+    });
+  }
+
+  // --- prestasi ---
+  if (Array.isArray(data.prestasi)) {
+    stmts.push(env.DB.prepare('DELETE FROM prestasi'));
+    data.prestasi.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare(
+          'INSERT INTO prestasi (photo, badge, date, title, student_name, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(it.photo || '', it.badge || '', it.date || '', it.title || '', it.studentName || '', i)
+      );
+    });
+  }
+
+  // --- ekskul ---
+  if (Array.isArray(data.ekskul)) {
+    stmts.push(env.DB.prepare('DELETE FROM ekskul'));
+    data.ekskul.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO ekskul (icon, color, name, status, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .bind(it.icon || '', it.color || '', it.name || '', it.status || '', i)
+      );
+    });
+  }
+
+  // --- berita (id dipertahankan apa adanya) ---
+  if (Array.isArray(data.berita)) {
+    stmts.push(env.DB.prepare('DELETE FROM berita'));
+    data.berita.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare(
+          'INSERT INTO berita (id, date, author, category, title, excerpt, content, tags, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        ).bind(it.id, it.date || '', it.author || '', it.category || '', it.title || '', it.excerpt || '', it.content || '', it.tags || '', i)
+      );
+    });
+  }
+  // CATATAN: data.beritaComments SENGAJA TIDAK diproses di sini.
+
+  // --- agenda ---
+  if (Array.isArray(data.agenda)) {
+    stmts.push(env.DB.prepare('DELETE FROM agenda'));
+    data.agenda.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO agenda (month, day, title, time, location, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(it.month || '', it.day || '', it.title || '', it.time || '', it.location || '', i)
+      );
+    });
+  }
+
+  // --- galeri ---
+  if (Array.isArray(data.galeri)) {
+    stmts.push(env.DB.prepare('DELETE FROM galeri'));
+    data.galeri.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO galeri (image, caption, sort_order) VALUES (?, ?, ?)')
+          .bind(it.image || '', it.caption || '', i)
+      );
+    });
+  }
+
+  // --- testimoni ---
+  if (Array.isArray(data.testimoni)) {
+    stmts.push(env.DB.prepare('DELETE FROM testimoni'));
+    data.testimoni.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO testimoni (quote, name, role, photo, sort_order) VALUES (?, ?, ?, ?, ?)')
+          .bind(it.quote || '', it.name || '', it.role || '', it.photo || '', i)
+      );
+    });
+  }
+
+  // --- faq ---
+  if (Array.isArray(data.faq)) {
+    stmts.push(env.DB.prepare('DELETE FROM faq'));
+    data.faq.forEach((it, i) => {
+      stmts.push(
+        env.DB.prepare('INSERT INTO faq (q, a, sort_order) VALUES (?, ?, ?)')
+          .bind(it.q || '', it.a || '', i)
+      );
+    });
+  }
+
+  // --- custom_sections + custom_section_items (id dipertahankan) ---
+  if (Array.isArray(data.customSections)) {
+    stmts.push(env.DB.prepare('DELETE FROM custom_section_items'));
+    stmts.push(env.DB.prepare('DELETE FROM custom_sections'));
+    data.customSections.forEach((cs, i) => {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO custom_sections
+             (id, type, eyebrow, title, subtitle, bg_style, active, menu_label, image, image_position, columns, cta_label, cta_link, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          cs.id, cs.type || '', cs.eyebrow || '', cs.title || '', cs.subtitle || '',
+          cs.bgStyle || 'light', cs.active ? 1 : 0, cs.menuLabel || '',
+          cs.image || '', cs.imagePosition || 'right', cs.columns || 3,
+          cs.ctaLabel || '', cs.ctaLink || '', i
+        )
+      );
+      (cs.items || []).forEach((item, j) => {
+        stmts.push(
+          env.DB.prepare('INSERT INTO custom_section_items (section_id, item_json, sort_order) VALUES (?, ?, ?)')
+            .bind(cs.id, JSON.stringify(item), j)
+        );
+      });
+    });
+  }
+
+  return stmts;
 }
 
 export default {
@@ -277,59 +527,62 @@ export default {
     }
 
     // ---------------------------------------------------------------
-    // GERBANG HALAMAN ADMIN — lihat wrangler.toml (run_worker_first).
-    // Request ke /admin.html masuk ke sini SEBELUM file statisnya dikirim.
-    // Kalau sesi tidak valid, admin.html TIDAK PERNAH dikirim ke browser;
-    // pengunjung dialihkan ke /login.html.
+    // GERBANG HALAMAN ADMIN
     // ---------------------------------------------------------------
     if ((url.pathname === '/admin.html' || url.pathname === '/admin') && request.method === 'GET') {
       const session = await getValidSession(request, env);
       if (!session) {
         return Response.redirect(new URL('/login.html', url).toString(), 302);
       }
-      // PENTING: teruskan request APA ADANYA (jangan paksa ganti ke /admin.html).
-      // Cloudflare Assets otomatis mempersingkat /admin.html <-> /admin secara
-      // internal; memaksa salah satu bentuk di sini menyebabkan redirect loop.
       const assetResponse = await env.ASSETS.fetch(request);
       return withSecurityHeaders(assetResponse);
     }
 
     // ---------------------------------------------------------------
-    // GET /api/data — konten publik situs. TIDAK butuh auth (memang untuk
-    // ditampilkan ke semua pengunjung), tapi kita jaga-jaga strip field
-    // "admin" kalau-kalau masih ada sisa dari data lama.
+    // GET /api/data — SEKARANG membaca dari banyak tabel (assembleSiteData)
+    // alih-alih satu kolom JSON.
     // ---------------------------------------------------------------
     if (url.pathname === '/api/data' && request.method === 'GET') {
-      const row = await env.DB.prepare('SELECT data, updated_at FROM site_data WHERE id = ?')
-        .bind('main').first();
-      let data = row ? row.data : '{}';
-      try {
-        const parsed = JSON.parse(data);
-        if (parsed && typeof parsed === 'object' && 'admin' in parsed) {
-          delete parsed.admin;
-          data = JSON.stringify(parsed);
-        }
-      } catch (e) { /* biarkan apa adanya kalau bukan JSON valid */ }
-      return new Response(data, {
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'X-Updated-At': row ? String(row.updated_at) : '0',
-          ...cors,
-        },
-      });
+      const data = await assembleSiteData(env);
+      return json(data, 200, env, request);
     }
 
     // ---------------------------------------------------------------
-    // POST /api/login — dilindungi rate-limit per-IP + penguncian akun
-    // (lihat komentar "V3 - PROTEKSI LOGIN" di atas file).
+    // POST /api/public/berita/:slug/comments — submit komentar publik.
+    // Endpoint BARU: hanya menambah baris ke berita_comments, tidak
+    // pernah menyentuh tabel lain. Tidak butuh auth (memang untuk publik),
+    // tapi dibatasi panjang wajar untuk mencegah penyalahgunaan.
+    // ---------------------------------------------------------------
+    {
+      const commentMatch = url.pathname.match(/^\/api\/public\/berita\/([^/]+)\/comments$/);
+      if (commentMatch && request.method === 'POST') {
+        const beritaId = decodeURIComponent(commentMatch[1]);
+        let body;
+        try { body = await request.json(); } catch (e) { return json({ error: 'Payload tidak valid.' }, 400, env, request); }
+        const name = String(body.name || '').trim().slice(0, 100);
+        const comment = String(body.comment || '').trim().slice(0, 2000);
+        if (!name || !comment) return json({ error: 'Nama dan komentar wajib diisi.' }, 400, env, request);
+
+        const article = await env.DB.prepare('SELECT id FROM berita WHERE id = ?').bind(beritaId).first();
+        if (!article) return json({ error: 'Artikel tidak ditemukan.' }, 404, env, request);
+
+        const now = Date.now();
+        await env.DB.prepare(
+          'INSERT INTO berita_comments (berita_id, name, comment, created_at) VALUES (?, ?, ?, ?)'
+        ).bind(beritaId, name, comment, now).run();
+
+        return json({ ok: true }, 200, env, request);
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // POST /api/login
     // ---------------------------------------------------------------
     if (url.pathname === '/api/login' && request.method === 'POST') {
       const ip = getClientIp(request);
-
       if (await isIpRateLimited(env, ip)) {
         return json({ error: 'Terlalu banyak percobaan login dari jaringan Anda. Coba lagi dalam beberapa menit.' }, 429, env, request);
       }
-
       let body;
       try { body = await request.json(); } catch (e) { return json({ error: 'Payload tidak valid.' }, 400, env, request); }
       const username = String(body.username || '').trim();
@@ -343,8 +596,6 @@ export default {
       }
 
       const user = await env.DB.prepare('SELECT * FROM admin_users WHERE username = ?').bind(username).first();
-      // Pesan error SENGAJA generik (tidak bilang "username salah" vs "password salah")
-      // supaya penyerang tidak bisa menebak username yang valid satu per satu.
       if (!user) {
         await recordLoginAttempt(env, username, ip, false);
         return json({ error: 'Username atau password salah.' }, 401, env, request);
@@ -369,25 +620,17 @@ export default {
         .bind(token, user.username, now, now + SESSION_TTL_MS).run();
 
       return json({
-        ok: true,
-        username: user.username,
-        forcePasswordChange: !!user.force_password_change,
-      }, 200, env, request, {
-        'Set-Cookie': sessionCookieHeader(token, SESSION_TTL_MS / 1000),
-      });
+        ok: true, username: user.username, forcePasswordChange: !!user.force_password_change,
+      }, 200, env, request, { 'Set-Cookie': sessionCookieHeader(token, SESSION_TTL_MS / 1000) });
     }
 
     // ---------------------------------------------------------------
-    // GET /api/session — dipakai admin.html untuk verifikasi sebelum render
+    // GET /api/session
     // ---------------------------------------------------------------
     if (url.pathname === '/api/session' && request.method === 'GET') {
       const session = await getValidSession(request, env);
       if (!session) return json({ error: 'Belum masuk.' }, 401, env, request);
-      return json({
-        ok: true,
-        username: session.username,
-        forcePasswordChange: !!session.force_password_change,
-      }, 200, env, request);
+      return json({ ok: true, username: session.username, forcePasswordChange: !!session.force_password_change }, 200, env, request);
     }
 
     // ---------------------------------------------------------------
@@ -400,9 +643,7 @@ export default {
     }
 
     // ---------------------------------------------------------------
-    // POST /api/admin/change-password — wajib sesi valid + password lama benar.
-    // SELALU diizinkan walau forcePasswordChange aktif (justru ini jalan
-    // keluarnya) — cuma di sini juga flag force_password_change dimatikan.
+    // POST /api/admin/change-password
     // ---------------------------------------------------------------
     if (url.pathname === '/api/admin/change-password' && request.method === 'POST') {
       const session = await getValidSession(request, env);
@@ -435,14 +676,12 @@ export default {
     }
 
     // ---------------------------------------------------------------
-    // Kelola banyak akun admin.
+    // Kelola banyak akun admin
     // ---------------------------------------------------------------
     if (url.pathname === '/api/admin/users' && request.method === 'GET') {
       const session = await getValidSession(request, env);
       if (!session) return json({ error: 'Sesi tidak valid, silakan masuk lagi.' }, 401, env, request);
-      const { results } = await env.DB.prepare(
-        'SELECT username, created_at FROM admin_users ORDER BY created_at ASC'
-      ).all();
+      const { results } = await env.DB.prepare('SELECT username, created_at FROM admin_users ORDER BY created_at ASC').all();
       return json({ ok: true, users: results, currentUsername: session.username }, 200, env, request);
     }
 
@@ -452,7 +691,6 @@ export default {
       if (session.force_password_change) {
         return json({ error: 'Anda wajib mengganti password terlebih dahulu sebelum menambah akun lain.' }, 403, env, request);
       }
-
       let body;
       try { body = await request.json(); } catch (e) { return json({ error: 'Payload tidak valid.' }, 400, env, request); }
       const username = String(body.username || '').trim();
@@ -481,7 +719,6 @@ export default {
       if (session.force_password_change) {
         return json({ error: 'Anda wajib mengganti password terlebih dahulu sebelum menghapus akun.' }, 403, env, request);
       }
-
       let body;
       try { body = await request.json(); } catch (e) { return json({ error: 'Payload tidak valid.' }, 400, env, request); }
       const username = String(body.username || '').trim();
@@ -492,21 +729,17 @@ export default {
       if (countRow && countRow.n <= 1) return json({ error: 'Tidak bisa menghapus admin terakhir.' }, 400, env, request);
 
       await env.DB.prepare('DELETE FROM admin_users WHERE username = ?').bind(username).run();
-      // Cabut semua sesi login admin yang dihapus, supaya langsung ter-logout di perangkat manapun.
       await env.DB.prepare('DELETE FROM sessions WHERE username = ?').bind(username).run();
 
       return json({ ok: true }, 200, env, request);
     }
 
     // ---------------------------------------------------------------
-    // GET /api/admin/security-log — 50 percobaan login terakhir, dipakai
-    // menu "Log Keamanan" di admin.html supaya admin sadar kalau ada yang
-    // mencoba brute-force, tanpa perlu buka Cloudflare Dashboard.
+    // GET /api/admin/security-log
     // ---------------------------------------------------------------
     if (url.pathname === '/api/admin/security-log' && request.method === 'GET') {
       const session = await getValidSession(request, env);
       if (!session) return json({ error: 'Sesi tidak valid, silakan masuk lagi.' }, 401, env, request);
-
       const { results } = await env.DB.prepare(
         'SELECT username, ip, success, created_at FROM login_attempts ORDER BY created_at DESC LIMIT 50'
       ).all();
@@ -514,8 +747,10 @@ export default {
     }
 
     // ---------------------------------------------------------------
-    // PUT /api/data — simpan seluruh data situs. WAJIB sesi admin valid,
-    // DAN ditolak selama akun masih wajib ganti password (force_password_change).
+    // PUT /api/data — SEKARANG memecah body JSON jadi banyak statement
+    // kecil dan menjalankannya sebagai satu batch atomik lewat
+    // env.DB.batch(). Tidak ada lagi satu kolom besar yang bisa kena
+    // SQLITE_TOOBIG -- setiap baris paling besar berisi satu foto.
     // ---------------------------------------------------------------
     if (url.pathname === '/api/data' && request.method === 'PUT') {
       const session = await getValidSession(request, env);
@@ -524,36 +759,115 @@ export default {
         return json({ error: 'Anda wajib mengganti password default terlebih dahulu sebelum bisa menyimpan perubahan. Buka menu Pengaturan Akun.' }, 403, env, request);
       }
 
-      let bodyText;
+      let data;
       try {
-        bodyText = await request.text();
+        const bodyText = await request.text();
+        // Batas kewajaran keseluruhan body (bukan lagi batas kolom D1 --
+        // tapi tetap jaga-jaga terhadap payload yang tidak masuk akal).
         if (bodyText.length > 20 * 1024 * 1024) {
-          return json({ error: 'Data terlalu besar (maks 20MB). Kompres gambar yang diunggah.' }, 413, env, request);
+          return json({ error: 'Data terlalu besar (maks 20MB total). Kompres gambar yang diunggah.' }, 413, env, request);
         }
-        const parsed = JSON.parse(bodyText);
-        // Jaring pengaman: kredensial tidak boleh pernah ikut tersimpan di sini,
-        // walau client lama/berbeda mengirimkannya secara tidak sengaja.
-        if (parsed && typeof parsed === 'object' && 'admin' in parsed) {
-          delete parsed.admin;
-          bodyText = JSON.stringify(parsed);
-        }
+        data = JSON.parse(bodyText);
+        if (data && typeof data === 'object' && 'admin' in data) delete data.admin;
       } catch (e) {
         return json({ error: 'Format data JSON tidak valid.' }, 400, env, request);
       }
 
-      const now = Date.now();
-      await env.DB.prepare(
-        'INSERT INTO site_data (id, data, updated_at) VALUES (?, ?, ?) ' +
-        'ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at'
-      ).bind('main', bodyText, now).run();
+      try {
+        const stmts = buildDecomposeStatements(env, data);
+        if (stmts.length > 0) {
+          await env.DB.batch(stmts);
+        }
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        if (msg.includes('TOOBIG') || msg.toLowerCase().includes('too big')) {
+          // Sekarang cuma mungkin kejadian kalau SATU item tunggal (mis. satu
+          // foto guru) sendiri sudah lewat batas D1 -- bukan lagi gabungan
+          // seluruh situs. Pesannya disesuaikan supaya admin tahu persis.
+          return json({
+            error: 'Salah satu foto yang diunggah masih terlalu besar untuk disimpan. Kompres foto tersebut (perkecil ukuran filenya), lalu coba simpan lagi.',
+          }, 413, env, request);
+        }
+        throw e;
+      }
 
-      return json({ ok: true, updated_at: now }, 200, env, request);
+      return json({ ok: true, updated_at: Date.now() }, 200, env, request);
     }
 
     // ---------------------------------------------------------------
-    // Untuk request lain yang cocok dengan file statis (index.html,
-    // login.html, sitemap.xml, dst), teruskan ke asset binding lalu
-    // tambahkan header keamanan (CSP dkk) untuk respons berjenis HTML.
+    // POST /api/admin/migrate-to-tables — MIGRASI SATU KALI dari tabel
+    // site_data lama (blob JSON tunggal) ke skema per-tabel baru.
+    //
+    // CARA PAKAI: setelah schema_tambahan.sql dijalankan & worker ini
+    // dideploy, login sebagai admin lalu buka:
+    //   https://sdn01papahan.sch.id/api/admin/migrate-to-tables
+    // dari browser yang sedang login (atau lewat fetch() di DevTools
+    // Console tab Admin: fetch('/api/admin/migrate-to-tables', {method:
+    // 'POST', credentials:'same-origin'}).then(r=>r.json()).then(console.log)
+    //
+    // AMAN DIJALANKAN BERULANG (idempotent): setiap kali dipanggil, akan
+    // membaca ulang site_data.data TERKINI dan menimpa tabel baru dengan
+    // isinya (pola sama seperti PUT /api/data biasa) -- jadi tidak
+    // merusak apa pun kalau dijalankan dua kali. TIDAK menghapus tabel
+    // site_data lama -- itu keputusan manual terpisah setelah Anda
+    // yakin migrasi berhasil (lihat langkah verifikasi di chat).
+    // ---------------------------------------------------------------
+    if (url.pathname === '/api/admin/migrate-to-tables' && request.method === 'POST') {
+      const session = await getValidSession(request, env);
+      if (!session) return json({ error: 'Sesi tidak valid, silakan masuk lagi.' }, 401, env, request);
+
+      const row = await env.DB.prepare('SELECT data FROM site_data WHERE id = ?').bind('main').first();
+      if (!row) return json({ error: 'Tidak ada data lama (site_data) untuk dimigrasikan.' }, 404, env, request);
+
+      let oldData;
+      try { oldData = JSON.parse(row.data); } catch (e) {
+        return json({ error: 'Data lama di site_data bukan JSON yang valid.' }, 500, env, request);
+      }
+
+      const stmts = buildDecomposeStatements(env, oldData);
+      if (stmts.length > 0) {
+        await env.DB.batch(stmts);
+      }
+
+      // Migrasikan juga beritaComments lama (kalau ada) -- SEKALI SAJA di
+      // sini, karena ini satu-satunya tempat field itu boleh diproses dari
+      // sumber JSON lama (PUT /api/data biasa sengaja mengabaikannya).
+      if (oldData.beritaComments && typeof oldData.beritaComments === 'object') {
+        const commentStmts = [];
+        for (const [beritaId, comments] of Object.entries(oldData.beritaComments)) {
+          if (!Array.isArray(comments)) continue;
+          for (const c of comments) {
+            commentStmts.push(
+              env.DB.prepare('INSERT INTO berita_comments (berita_id, name, comment, created_at) VALUES (?, ?, ?, ?)')
+                .bind(beritaId, c.name || '', c.comment || '', c.created_at || Date.now())
+            );
+          }
+        }
+        if (commentStmts.length > 0) await env.DB.batch(commentStmts);
+      }
+
+      const verify = await assembleSiteData(env);
+      return json({
+        ok: true,
+        message: 'Migrasi selesai. Periksa hasil di bawah, lalu bandingkan dengan backup JSON Anda sebelum menghapus tabel site_data lama.',
+        counts: {
+          guru: verify.guru.length,
+          prestasi: verify.prestasi.length,
+          program: verify.program.length,
+          ekskul: verify.ekskul.length,
+          berita: verify.berita.length,
+          agenda: verify.agenda.length,
+          galeri: verify.galeri.length,
+          testimoni: verify.testimoni.length,
+          faq: verify.faq.length,
+          customSections: verify.customSections.length,
+          heroImages: verify.hero.images.length,
+        },
+      }, 200, env, request);
+    }
+
+    // ---------------------------------------------------------------
+    // File statis + header keamanan
     // ---------------------------------------------------------------
     if (env.ASSETS) {
       try {
