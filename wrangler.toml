@@ -53,7 +53,7 @@ database_name = "sdn01papahan"
 #   2. Salin nilai "database_id" dari output tersebut, tempel di bawah ini
 #   (atau lihat di Cloudflare Dashboard > Workers & Pages > D1 > nama
 #   database Anda > "Database ID")
-database_id = "GANTI-DENGAN-DATABASE-ID-BARU-ANDA"
+database_id = "4335651b-5832-41ee-8406-8559b31ba485"
 
 # (Sebelumnya sempat dicoba pakai R2 untuk penyimpanan foto -- DIBATALKAN
 # atas permintaan, supaya tidak perlu provisioning layanan tambahan apa
@@ -81,7 +81,7 @@ ALLOWED_ORIGIN = "https://sdn01papahan.sch.id"
 # Key ini TIDAK perlu didaftarkan manual ke Bing -- cukup ada sekali,
 # begitu Worker pertama kali mengirim submit ke api.indexnow.org, key ini
 # otomatis terverifikasi lewat file .txt tersebut.
-INDEXNOW_KEY = "4335651b-5832-41ee-8406-8559b31ba485"
+INDEXNOW_KEY = "d292209b3dea9579169bba6c281c58c1"
 
 # Catatan: mekanisme SYNC_KEY / X-Sync-Key lama SUDAH TIDAK DIPAKAI.
 # Otorisasi sekarang memakai sesi login (cookie HttpOnly) yang dibuat oleh
