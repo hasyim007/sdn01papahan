@@ -1,0 +1,40 @@
+=============================================================================
+KUNCI VAPID untuk Notifikasi Push — SDN 01 Papahan
+Dibuat otomatis: 30 Agustus 2026
+=============================================================================
+
+PUBLIC KEY (sudah otomatis diisi ke wrangler.toml, aman dilihat siapa saja):
+BGhXeP7xHEDjMsC6XGPW7lu5FiStBvlzj992OidgXCw1nS6DZx32qALEL_nEvTuc05vuEqfZCutlm1zxUCsA2Io
+
+PRIVATE KEY (RAHASIA — JANGAN pernah taruh di wrangler.toml, jangan upload
+ke GitHub publik, jangan kirim ke siapapun. Kalau bocor, orang lain bisa
+mengirim notifikasi palsu atas nama SDN 01 Papahan ke semua pengunjung yang
+sudah berlangganan):
+{"kty":"EC","x":"aFd4_vEcQOMywLpcY9buW7kWJK0G-XOP33Y6J2BcLDU","y":"nS6DZx32qALEL_nEvTuc05vuEqfZCutlm1zxUCsA2Io","crv":"P-256","d":"e8i5AOSbXVO6hODzEN9BY881_MlZildNwxkjZeUF4-U"}
+
+=============================================================================
+CARA MEMASANG PRIVATE KEY KE SERVER (WAJIB dilakukan sebelum tombol notifikasi
+"Kirim Notifikasi" di admin bisa bekerja)
+=============================================================================
+
+1. Buka terminal di folder project ini (folder yang ada file wrangler.toml).
+
+2. Jalankan perintah ini:
+   wrangler secret put VAPID_PRIVATE_KEY
+
+3. Saat diminta menempel nilai (paste value), copy PERSIS baris JSON
+   PRIVATE KEY di atas (satu baris utuh, termasuk tanda kurung kurawal {}),
+   lalu tekan Enter.
+
+4. Setelah itu deploy ulang seperti biasa (mis. `wrangler deploy` atau
+   proses deploy yang biasa dipakai).
+
+5. Setelah private key ini terpasang, HAPUS FILE INI dari komputer/server
+   Anda (atau paling tidak jangan ikut di-upload ke tempat manapun selain
+   penyimpanan pribadi Anda) — file ini hanya untuk sekali pakai saat
+   setup awal.
+
+Kalau nanti kunci ini perlu diganti (misalnya karena tidak sengaja bocor),
+tinggal generate ulang sepasang kunci baru dan ulangi langkah 1-4 di atas
+dengan kunci yang baru (public key juga wajib diganti bersamaan di
+wrangler.toml, karena publik & private harus sepasang).
