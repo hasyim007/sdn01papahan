@@ -1,0 +1,116 @@
+name = "sdn01papahan"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Static assets (HTML/CSS/JS) yang di-hosting langsung oleh Worker ini.
+# Secara default, request yang cocok dengan file di folder "public" akan
+# disajikan LANGSUNG tanpa menjalankan src/index.js.
+#
+# Kekecualian penting: "run_worker_first" membuat path-path tertentu tetap
+# lewat Worker DULU sebelum file statisnya dikirim (atau supaya path yang
+# TIDAK PUNYA file statis sama sekali tetap bisa ditangani Worker -- tanpa
+# didaftarkan di sini, path yang tidak match file apa pun akan langsung
+# dibalas 404 oleh Cloudflare TANPA PERNAH menjalankan src/index.js).
+# Dipakai untuk:
+#  1. Melindungi /admin.html — Worker mengecek cookie sesi login lebih dulu;
+#     kalau tidak valid, browser dialihkan ke /login.html dan ISI DASHBOARD
+#     TIDAK PERNAH terkirim ke browser tersebut sama sekali (bukan cuma
+#     disembunyikan lewat CSS/JS, tapi memang tidak pernah dikirim server).
+#  2. "/", "/index.html", "/login.html" didaftarkan juga supaya Worker
+#     sempat menambahkan header keamanan (Content-Security-Policy,
+#     X-Frame-Options, dst — lihat withSecurityHeaders() di src/index.js)
+#     ke halaman publik, bukan cuma ke admin.html.
+#  3. (BARU) "/berita/*" — halaman artikel server-side untuk SEO, TIDAK
+#     ADA file statisnya sama sekali, jadi WAJIB didaftarkan di sini atau
+#     semua URL artikel akan 404.
+#  4. (BARU) "/sitemap.xml" — dulu file statis, sekarang dibuat dinamis
+#     oleh Worker (isinya otomatis mengikuti daftar artikel di database).
+#  5. (BARU) "/site-cover" — foto representatif situs (foto hero pertama)
+#     diproxy dari data URI base64 di D1 jadi URL gambar biasa, dipakai
+#     untuk og:image beranda & JSON-LD "logo"/"image" School.
+#  6. (BARU) "/" & "/index.html" SEKARANG juga mengganti <head> SEO (title,
+#     meta description, canonical, og:*, JSON-LD School) secara server-side
+#     dari data site_settings terkini -- sebelumnya cuma dititipi security
+#     header, sekarang isi <head>-nya ikut disuntik (lihat renderHomePage
+#     di src/index.js).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/", "/index.html", "/login.html", "/admin.html", "/admin", "/api/*", "/berita/*", "/sitemap.xml", "/img/*", "/site-cover", "/d292209b3dea9579169bba6c281c58c1.txt"]
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sdn01papahan"
+# GANTI dengan ID database D1 BARU Anda -- ID di bawah ini HANYA CONTOH dan
+# TIDAK akan cocok dengan akun Cloudflare Anda. Kalau ID ini tidak diganti,
+# deploy akan gagal atau (lebih berbahaya) worker tidak akan bisa terhubung
+# ke database sama sekali.
+#
+# Cara mendapatkan ID yang benar:
+#   1. wrangler d1 create sdn01papahan
+#      -> perintah ini MEMBUAT database baru dan MENCETAK id-nya di terminal
+#   2. Salin nilai "database_id" dari output tersebut, tempel di bawah ini
+#   (atau lihat di Cloudflare Dashboard > Workers & Pages > D1 > nama
+#   database Anda > "Database ID")
+database_id = "4335651b-5832-41ee-8406-8559b31ba485"
+
+# (Sebelumnya sempat dicoba pakai R2 untuk penyimpanan foto -- DIBATALKAN
+# atas permintaan, supaya tidak perlu provisioning layanan tambahan apa
+# pun. Solusi akhirnya: foto tetap di D1, tapi dipisah ke tabel `images`
+# tersendiri -- lihat schema.sql & POST /api/admin/upload-image di
+# src/index.js. Tidak ada binding tambahan yang perlu didaftarkan di sini.)
+
+[vars]
+# Origin resmi situs ini (dipakai untuk header CORS). Sesuaikan dengan
+# domain asli Anda; kalau masih di *.workers.dev, isi origin workers.dev-nya.
+ALLOWED_ORIGIN = "https://sdn01papahan.sch.id"
+
+# =========================================================================
+# (BARU) IndexNow — auto-submit URL berita baru/diubah ke Bing & Yandex
+# (dan otomatis ikut dipakai Google lewat Bing Webmaster Tools jika
+# di-hubungkan) SETIAP KALI admin menyimpan berita, tanpa perlu submit
+# manual satu-satu di Search Console.
+# =========================================================================
+# Key ini SENGAJA boleh terlihat publik (memang cara kerja protokol
+# IndexNow: key harus bisa diverifikasi lewat file https://domain/<key>.txt
+# -- lihat rute khusus di src/index.js & baris run_worker_first di atas).
+# Kalau mau ganti key, GANTI DI 3 TEMPAT SEKALIGUS (harus identik):
+#   1. Nilai INDEXNOW_KEY di bawah ini
+#   2. Nama file di run_worker_first di atas ("/<key>.txt")
+# Key ini TIDAK perlu didaftarkan manual ke Bing -- cukup ada sekali,
+# begitu Worker pertama kali mengirim submit ke api.indexnow.org, key ini
+# otomatis terverifikasi lewat file .txt tersebut.
+INDEXNOW_KEY = "d292209b3dea9579169bba6c281c58c1"
+
+# Catatan: mekanisme SYNC_KEY / X-Sync-Key lama SUDAH TIDAK DIPAKAI.
+# Otorisasi sekarang memakai sesi login (cookie HttpOnly) yang dibuat oleh
+# POST /api/login setelah verifikasi username+password ke tabel admin_users
+# di D1 (lihat schema.sql). Tidak ada secret yang perlu di-set manual lagi.
+
+# =========================================================================
+# (BARU — Tahap 2) Web Push Notification
+# =========================================================================
+# 1. Generate sepasang kunci VAPID SEKALI SAJA di komputer Anda:
+#      npx @pushforge/builder vapid
+#    Perintah ini mencetak dua nilai: sebuah "Public Key" (base64url,
+#    aman dipublikasikan) dan sebuah "Private Key" dalam format JWK
+#    (JSON, RAHASIA -- jangan pernah taruh di kode/vars biasa).
+#
+# 2. Tempel Public Key di bawah ini (var biasa, boleh terlihat publik --
+#    memang dibaca browser pengunjung lewat GET /api/push/public-key untuk
+#    mendaftar langganan push).
+VAPID_PUBLIC_KEY = "BGhXeP7xHEDjMsC6XGPW7lu5FiStBvlzj992OidgXCw1nS6DZx32qALEL_nEvTuc05vuEqfZCutlm1zxUCsA2Io"
+
+# Alamat kontak admin, syarat standar VAPID (dikirim sebagai "mailto:"
+# kalau ada aduan/masalah dari pihak layanan push Google/Mozilla).
+VAPID_CONTACT_EMAIL = "admin@sdn01papahan.sch.id"
+
+# 3. Private Key WAJIB disimpan sebagai secret (bukan di [vars] biasa --
+#    [vars] ikut ter-commit ke file ini, sedangkan secret tidak), dengan:
+#      wrangler secret put VAPID_PRIVATE_KEY
+#    lalu tempel seluruh JSON JWK dari langkah 1 (contoh bentuknya:
+#    {"kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}) sebagai
+#    satu baris saat diminta. Tanpa secret ini, tombol "Kirim Notifikasi"
+#    di admin akan menampilkan pesan error, tapi fitur lain di situs tetap
+#    jalan normal.
